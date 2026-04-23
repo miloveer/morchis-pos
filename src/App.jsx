@@ -7,7 +7,7 @@ import {
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
 // ==========================================
-const TELEFONO_MORCHIS = "5518861974"; 
+const TELEFONO_MORCHIS = "5641375355"; 
 const COSTO_ENVIO_DOMICILIO = 10;
 const HORA_APERTURA = 16; // 4 PM
 const HORA_CIERRE = 23; // 11 PM
