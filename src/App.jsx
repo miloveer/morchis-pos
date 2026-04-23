@@ -144,7 +144,7 @@ export default function App() {
         <div className="flex justify-between items-center max-w-lg mx-auto">
           <div className="h-10 flex items-center gap-2">
             <img 
-              src="public/img/logoicon.png" 
+              src="/img/logoicon.png" 
               alt="Logo Temporal" 
               className="h-full object-contain"
             />
