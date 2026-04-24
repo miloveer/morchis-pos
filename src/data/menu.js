@@ -4,7 +4,7 @@ export const saboresRefresco = ['Coca Cola', 'Dr. Pepper', 'Limonada', 'Fresada'
 export const sazonadoresPapas = ['Sal', 'Lemon Pepper', 'Queso', 'Fuego', 'Incógnita', 'Habanero','Mantequilla','Crema y Especias'];
 export const removiblesPapas = ['Sin Catsup', 'Sin Queso Líquido', 'Sin Salsa'];
 export const listaSalsasAlitas = ['Clásicas','Clásicos', 'Mango', 'Flamin Hot', 'Tamarindo Fuego', 'Búfalo', 'Manzana Habanero', 'Maracuyá', 'Pelon Pelo Rico', 'Pica Fresa', 'Ranch', 'BBQ'];
-
+export const saboresCafe =['Kinder Delice','Cajeta','Mazapan','Taro', 'Crema Irlandesa','Nuez']
 export const menuData = [
   {
     id: 'burgers',
@@ -159,7 +159,7 @@ export const menuData = [
     id: 'refresco_solo',
     nombre: 'Refrescos',
     icono: '🥫',
-    imagen: '/img/refrescos.png',
+    imagen: '/img/refresco.png',
     usaRemoviblesGlobales: false,
     variantes: [{ id: 'rs1', nombre: 'Lata 355ml', precioBase: 30 }],
     opcionObligatoria: { titulo: 'Elige tu Refresco', opciones: saboresRefresco },
@@ -174,5 +174,32 @@ export const menuData = [
     variantes: [{ id: 'rp1', nombre: 'Chico', precioBase: 40 }, { id: 'rp2', nombre: 'Grande', precioBase: 50 }],
     opcionObligatoria: { titulo: 'Preparación', opciones: ['Sangría (Limon y Sal)','Sangria (Limon, Sal y tajin)', 'Mineral (Limón y Sal)', 'Mineral (Limón, Sal y Tajín)'] },
     extras: [], combos: [{ id: 'c1', nombre: 'Solo Bebida', precioExtra: 0 }]
-  }
+  },
+
+  {
+    id: 'sandwiches',
+    nombre: 'Sandwiches',
+    icono: '🥪',
+    imagen: '/img/sandwich.png',
+    usaRemoviblesGlobales: true,
+    variantes: [{ id: 'sw1', nombre: 'Jamón', precioBase: 55 }, { id: 'sw2', nombre: 'Jamón con Tocino', precioBase: 70 },
+                { id: 'sw3', nombre: 'Jamón con Queso Manchego', precioBase: 65 }, { id: 'sw4', nombre: 'Jamón con Piña', precioBase: 60 },
+                { id: 'sw5', nombre: 'Supremo (Jamón, Queso, Tocino y Piña)', precioBase: 75 }, { id: 'sw6', nombre: 'Queso Americano', precioBase: 65 },
+                { id: 'sw7', nombre: 'Jamón con Queso Oaxaca', precioBase: 65 }],
+    extras: [], combos: [{ id: 'c1', nombre: 'Solo Sandwich', precioExtra: 0 }, { id: 'c2', nombre: 'Combo con Papas', precioExtra: 30, incluyePapas: true }, { id: 'c3', nombre: 'Combo Soda Italiana', precioExtra: 30, incluyeSoda: true }]
+
+  },
+  {
+    id: 'sincronizadas',
+    nombre: 'Sincronizadas',
+    icono: '🫓',
+    imagen: '/img/sincronizada.png',
+    usaRemoviblesGlobales: true,
+    variantes: [{ id: 'sync1', nombre: 'Clásica (Jamón y Queso Manchego)', precioBase: 45 }, { id: 'sync2', nombre: 'Clásica (Jamon y Queso Oaxaca)', precioBase: 45 },
+       { id: 'sync3', nombre: 'Con tocino', precioBase: 55 }, { id: 'sync4', nombre: 'Con piña', precioBase: 50 }, { id: 'sync5', nombre: 'Jamón, Queso Manchego, Tocino y Piña', precioBase: 65 }
+       , { id: 'sync6', nombre: 'Jamón, Queso Oaxaca, Tocino y Piña', precioBase: 65 }],
+    extras: [{ id: 'ext7', nombre: 'Queso Extra', precio: 15 }],
+    combos: [{ id: 'c1', nombre: 'Solo Sincronizada', precioExtra: 0 }, { id: 'c2', nombre: 'Combo con Papas', precioExtra: 30, incluyePapas: true }, { id: 'c3', nombre: 'Combo Soda Italiana', precioExtra: 30, incluyeSoda: true }]
+
+  },
 ];
