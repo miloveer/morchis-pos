@@ -34,9 +34,9 @@ export const menuData = [
     variantes: [
       { id: 'j1', nombre: 'Sencillo', precioBase: 40 }, { id: 'j2', nombre: 'Hawaiano', precioBase: 50 },
       { id: 'j3', nombre: 'Cheese (Manchego)', precioBase: 45 }, { id: 'j4', nombre: 'Cheese (Americano)', precioBase: 45 },
-      { id: 'j5', nombre: 'Cheese (Quesillo)', precioBase: 45 }, { id: 'j6', nombre: '3 Quesos', precioBase: 65 },
-      { id: 'j7', nombre: 'Chicken', precioBase: 70 },{ id: 'j8', nombre: 'ChoriJocho', precioBase: 70 }, 
-      { id: 'j9', nombre: 'Porky', precioBase: 70 }],
+      { id: 'j5', nombre: 'Cheese (Quesillo)', precioBase: 45 }, { id: 'j6', nombre: '3 Quesos', precioBase: 55 },
+      { id: 'j7', nombre: 'Chicken', precioBase: 65 },{ id: 'j8', nombre: 'ChoriJocho', precioBase: 65 }, 
+      { id: 'j9', nombre: 'Porky', precioBase: 65 }],
     extras: [
       { id: 'ext2', nombre: 'Tocino', precio: 10 },
       { id: 'ext3', nombre: 'Queso Manchego', precio: 10 }, { id: 'ext4', nombre: 'Queso Americano', precio: 10 },
@@ -92,7 +92,7 @@ export const menuData = [
     icono: '🌯',
     imagen: '/img/burrito.png ',
     usaRemoviblesGlobales: true,
-    variantes: [{ id: 'bu1', nombre: 'Pollo', precioBase: 90 }, { id: 'bu2', nombre: 'Bistec', precioBase: 105 }, { id: 'bu3', nombre: 'Longaniza', precioBase: 95 }, { id: 'bu4', nombre: 'Campechano', precioBase: 115 }],
+    variantes: [{ id: 'bu1', nombre: 'Pollo', precioBase: 60 }, { id: 'bu2', nombre: 'Bistec', precioBase: 60 }, { id: 'bu3', nombre: 'Longaniza', precioBase: 60 }, { id: 'bu4', nombre: 'Campechano', precioBase: 60 }],
     extras: [{ id: 'ext7', nombre: 'Queso Extra', precio: 15 }],
     combos: [{ id: 'c1', nombre: 'Solo el Burrito', precioExtra: 0 }, { id: 'c2', nombre: 'Combo con Papas', precioExtra: 30, incluyePapas: true }, { id: 'c3', nombre: 'Combo Soda Italiana', precioExtra: 30, incluyeSoda: true }]
   },
@@ -102,7 +102,7 @@ export const menuData = [
     icono: '🍳',
     imagen: '/img/alambre.png',
     usaRemoviblesGlobales: false,
-    variantes: [{ id: 'al1', nombre: 'Pollo', precioBase: 110 }, { id: 'al2', nombre: 'Bistec', precioBase: 125 }, { id: 'al3', nombre: 'Longaniza', precioBase: 115 }, { id: 'al4', nombre: 'Campechano', precioBase: 135 }],
+    variantes: [{ id: 'al1', nombre: 'Pollo', precioBase: 100 }, { id: 'al2', nombre: 'Bistec', precioBase: 100 }, { id: 'al3', nombre: 'Longaniza', precioBase: 100 }, { id: 'al4', nombre: 'Campechano', precioBase: 100 }],
     extras: [{ id: 'ext8', nombre: 'Queso Extra', precio: 15 }, { id: 'ext9', nombre: 'Tortillas Extra', precio: 10 }],
     combos: false,
   },
