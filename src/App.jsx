@@ -112,6 +112,7 @@ export default function App() {
     carrito.forEach(item => {
       mensaje += `* ${item.cantidad}x ${item.nombreProducto} (${item.variante})\n`;
       
+      if  (item.proteina) mensaje += `  > Carne: ${item.proteina}\n`;
       if (item.removibles && item.removibles.length > 0) mensaje += `  > Sin: ${item.removibles.join(', ')}\n`;
       if (item.opcionObligatoria) mensaje += `  > Selección: ${item.opcionObligatoria}\n`;
       if (item.salsas && item.salsas.length > 0) mensaje += `  > Salsas: ${item.salsas.join(', ')}\n`;
@@ -230,6 +231,7 @@ export default function App() {
                       <div className="flex-1 pr-4">
                         <p className="font-bold text-gray-900 text-sm">{item.cantidad}x {item.nombreProducto}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{item.variante}</p>
+                        {item.proteina && <p className="text-xs text-gray-500 mt-0.5">Carne: {item.proteina}</p>}
                         <p className="text-sm font-bold text-gray-900 mt-1">${item.totalItem * item.cantidad}</p>
                       </div>
                       <button onClick={() => quitarDelCarrito(item.idUnico)} className="text-gray-400 hover:text-red-500 font-bold text-xs underline transition-colors">Quitar</button>
@@ -321,6 +323,9 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [comboIndex, setComboIndex] = useState(0);
   const [opcionObligatoria, setOpcionObligatoria] = useState(producto.opcionObligatoria ? producto.opcionObligatoria.opciones[0] : '');
   
+  // Estado para la proteína (res o pollo)
+  const [proteina, setProteina] = useState(producto.opcionProteina ? producto.opcionProteina[0] : '');
+
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
   const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
   const [sazonadorPapas, setSazonadorPapas] = useState(sazonadoresPapas[0]);
@@ -329,25 +334,26 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [removibles, setRemovibles] = useState([]);
   const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
   const [notas, setNotas] = useState('');
-  
-  // NUEVO ESTADO: Selector de cantidad
   const [cantidadItem, setCantidadItem] = useState(1);
+
+  const [quesoVariante, setQuesoVariante] =useState('');
 
   const varianteActual = producto.variantes[varianteIndex];
   const comboActual = producto.combos ? producto.combos[comboIndex] : null;
   const totalExtras = extrasSeleccionados.reduce((sum, extra) => sum + extra.precio, 0);
   
-  // Total por un solo artículo
   const precioUnitario = varianteActual.precioBase + (comboActual ? comboActual.precioExtra : 0) + totalExtras;
-  // Total multiplicado por la cantidad elegida
   const totalFinal = precioUnitario * cantidadItem;
 
   const handleAgregar = () => {
     if (producto.maxSalsas && salsasSeleccionadas.length === 0) return alert('Selecciona al menos una salsa.');
+    if (varianteActual.opcionesQueso && !quesoVariante) return alert('Selecciona una opción de queso.');
+    const requiereProteina = producto.opcionProteina && !varianteActual.nombre.toLowerCase().includes('chicken');
 
     const itemParaCarrito = {
       nombreProducto: producto.nombre,
-      variante: varianteActual.nombre,
+      variante: varianteActual.opcionesQueso ? `${varianteActual.nombre} (${quesoVariante})` : varianteActual.nombre,
+      proteina: requiereProteina ? proteina : null,
       combo: comboActual ? comboActual.nombre : null,
       opcionObligatoria: producto.opcionObligatoria ? opcionObligatoria : null,
       salsas: salsasSeleccionadas,
@@ -366,41 +372,80 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const toggleSalsa = (salsa) => setSalsasSeleccionadas(prev => { if (prev.includes(salsa)) return prev.filter(s => s !== salsa); if (prev.length >= producto.maxSalsas) return prev; return [...prev, salsa]; });
   const toggleArray = (item, setter) => setter(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
 
+  const mostrarProteina = producto.opcionProteina && !varianteActual.nombre.toLowerCase().includes('chicken');
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-0 sm:p-4 sm:items-center animate-fade-in">
       <div className="bg-white w-full max-w-md h-[92vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden">
         
-        {/* IMAGEN LIMPIA SIN TEXTO (Solo botón de cerrar) */}
         <div className="relative h-48 sm:h-56 bg-gray-900 shrink-0">
           <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-linear-to-b from-black/40 via-transparent to-transparent z-0"></div>
-          <button onClick={cerrar} className="absolute top-4 right-4 bg-white/30 backdrop-blur-md text-white hover:bg-white/50 w-10 h-10 rounded-full font-bold shadow-sm transition-colors flex items-center justify-center text-sm z-10">✕</button>
+          <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-0"></div>
+          <button onClick={cerrar} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white hover:bg-white/40 w-10 h-10 rounded-full font-bold shadow-sm transition-colors flex items-center justify-center text-sm z-10">✕</button>
+          <h2 className="absolute bottom-5 left-5 text-5xl sm:text-6xl font-black text-white drop-shadow-[0_4px_6px_rgba(0,0,0,0.9)] tracking-tighter z-10 leading-none uppercase">
+            {producto.nombre}
+          </h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-7 bg-white">
-          
-          {/* TÍTULO LIMPIO DENTRO DEL CONTENIDO */}
-          <div>
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">{producto.nombre}</h2>
-            <p className="text-sm text-gray-500 mt-1">Configura tu orden</p>
-          </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-7 bg-white">
           
           <section>
             <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Elige tu opción <span className="text-orange-500">*</span></h3>
+            {/* AQUI ESTÁ EL CAMBIO: Regresamos a grid-cols-2 */}
             <div className="grid grid-cols-2 gap-2">
               {producto.variantes.map((variante, index) => (
-                <label key={variante.id} className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-all w-full text-left ${varianteIndex === index ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'}`}>
+                <label key={variante.id} className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-all w-full text-left ${varianteIndex === index ? 'border-gray-900 bg-gray-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
                   <div className="flex items-start gap-2 w-full">
                     <input type="radio" checked={varianteIndex === index} onChange={() => setVarianteIndex(index)} className="w-4 h-4 mt-0.5 text-gray-900 accent-gray-900 shrink-0" />
                     <div className="flex-1">
-                      <span className="font-bold text-gray-900 text-sm block leading-tight">{variante.nombre}</span>
-                      <span className="text-gray-500 font-medium text-xs mt-1 block">${variante.precioBase}</span>
+                      <span className="font-black text-gray-900 text-sm block leading-tight">{variante.nombre}</span>
+                      
+                      {/* La descripción se hace más pequeña para que quepa bien en 2 columnas */}
+                      {variante.descripcion && (
+                        <span className="text-gray-500 text-[10px] mt-1 mb-1 block leading-tight">{variante.descripcion}</span>
+                      )}
+                      
+                      <span className="text-orange-600 font-bold text-xs mt-1 block">${variante.precioBase}</span>
                     </div>
                   </div>
                 </label>
               ))}
             </div>
           </section>
+
+          {mostrarProteina && (
+            <section className="bg-orange-50 p-4 rounded-xl border border-orange-100 animate-fade-in">
+              <h3 className="font-bold text-orange-900 mb-3 text-xs tracking-wider uppercase">Tipo de Carne <span className="text-orange-500">*</span></h3>
+              <div className="grid grid-cols-2 gap-2">
+                {producto.opcionProteina.map(prot => (
+                  <button 
+                    key={prot} 
+                    onClick={() => setProteina(prot)}
+                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${proteina === prot ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {prot}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {/* NUEVA SECCIÓN CONDICIONAL: TIPO DE QUESO */}
+          {varianteActual.opcionesQueso && (
+            <section className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 animate-fade-in">
+              <h3 className="font-bold text-yellow-900 mb-3 text-xs tracking-wider uppercase">Elige tu Queso <span className="text-orange-500">*</span></h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {varianteActual.opcionesQueso.map(queso => (
+                  <button 
+                    key={queso} 
+                    onClick={() => setQuesoVariante(queso)}
+                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${quesoVariante === queso ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {queso}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           {producto.opcionObligatoria && (
             <section>
@@ -415,7 +460,6 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
             </section>
           )}
 
-          {/* SECCIÓN 'SIN INGREDIENTES' MOVIDA ARRIBA */}
           {(producto.usaRemoviblesGlobales || producto.removiblesEspecificos) && (
             <section className="border-t border-gray-100 pt-6">
               <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">¿Deseas quitar algo?</h3>
@@ -500,7 +544,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
           {comboActual && comboActual.incluyeSoda && (
             <section className="bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in">
               <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Sabor de Soda</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {saboresSoda.map(sabor => (
                   <button key={sabor} onClick={() => setSaborSoda(sabor)} className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborSoda === sabor ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
                     {sabor}
@@ -539,27 +583,12 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
         </div>
 
-        {/* ========================================================
-            SELECTOR DE CANTIDAD Y BOTÓN DE AGREGAR
-        ======================================================== */}
         <div className="p-4 bg-white border-t border-gray-100 shrink-0 pb-6 sm:pb-4 flex gap-3 items-center">
-          
           <div className="flex items-center justify-between bg-gray-100 border border-gray-200 rounded-xl p-1 w-28 sm:w-32 shrink-0 h-14">
-            <button 
-              onClick={() => setCantidadItem(Math.max(1, cantidadItem - 1))} 
-              className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
-            >
-              -
-            </button>
+            <button onClick={() => setCantidadItem(Math.max(1, cantidadItem - 1))} className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95">-</button>
             <span className="font-black text-gray-900 text-lg">{cantidadItem}</span>
-            <button 
-              onClick={() => setCantidadItem(cantidadItem + 1)} 
-              className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
-            >
-              +
-            </button>
+            <button onClick={() => setCantidadItem(cantidadItem + 1)} className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95">+</button>
           </div>
-
           <button onClick={handleAgregar} className="flex-1 h-14 bg-gray-900 text-white px-5 rounded-xl font-bold text-lg hover:bg-gray-800 transition-all flex justify-between items-center shadow-sm active:scale-95">
             <span>Agregar</span>
             <span>${totalFinal}</span>
