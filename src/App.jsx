@@ -294,16 +294,77 @@ export default function App() {
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                   <h3 className="font-bold text-gray-900 mb-4 tracking-tight">Resumen de Orden</h3>
                   {carrito.map(item => (
-                    <div key={item.idUnico} className="py-3 flex justify-between items-start border-b border-gray-50 last:border-0 last:pb-0">
+                    <div key={item.idUnico} className="py-4 flex justify-between items-start border-b border-gray-100 last:border-0 last:pb-0">
                       <div className="flex-1 pr-4">
-                        <p className="font-bold text-gray-900 text-sm">{item.cantidad}x {item.nombreProducto}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{item.variante}</p>
-                        {item.proteina && <p className="text-xs text-gray-500 mt-0.5">Carne: {item.proteina}</p>}
-                        <p className="text-sm font-bold text-gray-900 mt-1">${item.totalItem * item.cantidad}</p>
+                        <p className="font-black text-gray-900 text-sm mb-1">{item.cantidad}x {item.nombreProducto}</p>
+                        
+                        {/* Bloque de detalles minuciosos */}
+                        <div className="text-[11px] text-gray-500 space-y-0.5 leading-tight mb-2">
+                          <p><span className="font-bold">Opción:</span> {item.variante}</p>
+                          
+                          {item.proteina && (
+                            <p><span className="font-bold">Carne:</span> {item.proteina}</p>
+                          )}
+                          
+                          {item.removibles && item.removibles.length > 0 && (
+                            <p className="text-red-500"><span className="font-bold">Sin:</span> {item.removibles.join(', ')}</p>
+                          )}
+
+                          {item.opcionObligatoria && (
+                            <p><span className="font-bold">Elección:</span> {item.opcionObligatoria}</p>
+                          )}
+
+                          {item.salsas && item.salsas.length > 0 && (
+                            <p>
+                              <span className="font-bold">Salsas:</span> {item.salsas.join(', ')} 
+                              {item.modoMezclaSalsa && <span className="italic"> ({item.modoMezclaSalsa})</span>}
+                            </p>
+                          )}
+
+                          {item.combo && !item.combo.includes('Solo') && (
+                            <p><span className="font-bold">Combo:</span> {item.combo}</p>
+                          )}
+
+                          {item.saborSoda && (
+                            <p><span className="font-bold">Refresco:</span> {item.saborSoda}</p>
+                          )}
+
+                          {item.saborFrappe && (
+                            <p><span className="font-bold">Frappe:</span> {item.saborFrappe}</p>
+                          )}
+
+                          {item.detallesPapas && (
+                            <div>
+                              <p><span className="font-bold">Papas:</span> {item.detallesPapas.sazonador}</p>
+                              {item.detallesPapas.sin.length > 0 && (
+                                <p className="text-red-500"><span className="font-bold">Papas sin:</span> {item.detallesPapas.sin.join(', ')}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {item.extras && item.extras.length > 0 && (
+                            <p className="text-orange-600"><span className="font-bold">Extras:</span> {item.extras.map(e => e.nombre).join(', ')}</p>
+                          )}
+
+                          {item.notas && (
+                            <p className="italic text-gray-700 bg-gray-50 p-1.5 rounded mt-1 border border-gray-100 text-[10px]">
+                              "{item.notas}"
+                            </p>
+                          )}
+                        </div>
+
+                        <p className="text-sm font-black text-gray-900">${item.totalItem * item.cantidad}</p>
                       </div>
-                      <button onClick={() => quitarDelCarrito(item.idUnico)} className="text-gray-400 hover:text-red-500 font-bold text-xs underline transition-colors">Quitar</button>
+                      <button 
+                        onClick={() => quitarDelCarrito(item.idUnico)} 
+                        className="text-gray-400 hover:text-red-500 font-bold text-[10px] uppercase tracking-wider underline transition-colors pt-1"
+                      >
+                        Quitar
+                      </button>
                     </div>
                   ))}
+                  {/* AQUÍ TERMINA EL NUEVO DESGLOSE */}
+
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-6">
