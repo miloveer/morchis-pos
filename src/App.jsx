@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { removiblesGlobales, saboresSoda, sazonadoresPapas, removiblesPapas, listaSalsasAlitas} from './data/menu';
+import { removiblesGlobales, saboresSoda,saboresFrappes, sazonadoresPapas, removiblesPapas, listaSalsasAlitas} from './data/menu';
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import AdminPanel from './AdminPanel';
@@ -172,6 +172,7 @@ export default function App() {
       if (item.combo && !item.combo.includes('Solo')) {
         mensaje += `  > ${item.combo}\n`;
         if (item.saborSoda) mensaje += `    - Sabor: ${item.saborSoda}\n`;
+        if (item.saborFrappe) mensaje += `  > Sabor: ${item.saborFrappe}\n`;
       }
       if (item.detallesPapas) {
         mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
@@ -410,6 +411,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
   const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
+  const [saborFrappe, setSaborFrappe] = useState(saboresFrappes ? saboresFrappes[0] : '');
   const [sazonadorPapas, setSazonadorPapas] = useState(sazonadoresPapas[0]);
   const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] = useState([]);
   
@@ -440,6 +442,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
       opcionObligatoria: producto.opcionObligatoria ? opcionObligatoria : null,
       salsas: salsasSeleccionadas,
       saborSoda: (comboActual && comboActual.incluyeSoda) ? saborSoda : null,
+      saborFrappe: producto.esFrappe ? saborFrappe : null,
       detallesPapas: ((comboActual && comboActual.incluyePapas) || producto.esProductoPapas) ? { sazonador: sazonadorPapas, sin: removiblesPapasSeleccionados } : null,
       extras: extrasSeleccionados,
       removibles: removibles,
@@ -521,6 +524,23 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                 {varianteActual.opcionesQueso.map(queso => (
                   <button key={queso} onClick={() => setQuesoVariante(queso)} className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${quesoVariante === queso ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
                     {queso}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {/* NUEVA SECCIÓN DE FRAPPES */}
+          {producto.esFrappe && (
+            <section className="bg-pink-50 p-4 rounded-xl border border-pink-100 animate-fade-in">
+              <h3 className="font-bold text-pink-900 mb-3 text-xs tracking-wider uppercase">Sabor de Frappe <span className="text-pink-500">*</span></h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {saboresFrappes.map(sabor => (
+                  <button 
+                    key={sabor} 
+                    onClick={() => setSaborFrappe(sabor)} 
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborFrappe === sabor ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                  >
+                    {sabor}
                   </button>
                 ))}
               </div>
