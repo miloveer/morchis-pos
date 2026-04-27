@@ -338,8 +338,9 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [comboIndex, setComboIndex] = useState(0);
   const [opcionObligatoria, setOpcionObligatoria] = useState(producto.opcionObligatoria ? producto.opcionObligatoria.opciones[0] : '');
   
-  // Estado para la proteína (res o pollo)
-  const [proteina, setProteina] = useState(producto.opcionProteina ? producto.opcionProteina[0] : '');
+ // Buscamos la primera proteína disponible para que sea la selección inicial
+  const proteinaInicial = producto.opcionProteina?.find(p => !p.agotada)?.nombre || '';
+  const [proteina, setProteina] = useState(proteinaInicial);
 
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
   const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
@@ -432,15 +433,24 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
             <section className="bg-orange-50 p-4 rounded-xl border border-orange-100 animate-fade-in">
               <h3 className="font-bold text-orange-900 mb-3 text-xs tracking-wider uppercase">Tipo de Carne <span className="text-orange-500">*</span></h3>
               <div className="grid grid-cols-2 gap-2">
-                {producto.opcionProteina.map(prot => (
-                  <button 
-                    key={prot} 
-                    onClick={() => setProteina(prot)}
-                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${proteina === prot ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-                  >
-                    {prot}
-                  </button>
-                ))}
+                {producto.opcionProteina.map(prot => {
+                  const estaAgotada = prot.agotada;
+                  return (
+                    <button 
+                      key={prot.nombre} 
+                      disabled={estaAgotada}
+                      onClick={() => setProteina(prot.nombre)}
+                      className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight relative
+                        ${estaAgotada ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70' : 
+                          proteina === prot.nombre ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                    >
+                      {prot.nombre}
+                      {estaAgotada && (
+                        <span className="block text-[9px] font-black text-red-500 uppercase mt-1">Agotada</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}

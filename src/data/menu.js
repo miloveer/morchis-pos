@@ -13,7 +13,10 @@ export const menuData = [
     icono: '🍔',
     imagen: '/img/burger.png',
     usaRemoviblesGlobales: true,
-    opcionProteina: ['Carne de Res', 'Pollo'],
+    opcionProteina: [
+      { nombre: 'Carne de Res', agotada: true },
+      { nombre: 'Pollo', agotada: false },
+    ],
     variantes: [
       { id: 'b1', nombre: 'Sencilla', precioBase: 60 },
       { id: 'b2', nombre: 'Honolulu', precioBase: 70, descripcion: '+ Piña y Jamón' },
