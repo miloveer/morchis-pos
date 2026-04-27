@@ -161,22 +161,37 @@ export default function App() {
 
       <main className="max-w-lg mx-auto pt-6 px-4 pb-6">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {menuData.map((categoria) => (
-            <div 
-              key={categoria.id} 
-              id={categoria.id}
-              onClick={() => setProductoSeleccionado(categoria)}
-              className="bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all active:scale-95 flex flex-col group"
-            >
-              <div className="h-28 sm:h-32 w-full overflow-hidden">
-                <ImageWithSkeleton src={categoria.imagen} alt={categoria.nombre} />
+          {menuData.map((categoria) => {
+            const estaAgotado = categoria.agotado; // <-- Leemos si está agotado
+            
+            return (
+              <div 
+                key={categoria.id} 
+                id={categoria.id}
+                // Si está agotado, bloqueamos el clic
+                onClick={() => !estaAgotado && setProductoSeleccionado(categoria)}
+                // Cambiamos el diseño a gris si está agotado
+                className={`bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col group scroll-mt-32 ${estaAgotado ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all active:scale-95'}`}
+              >
+                <div className="relative h-28 sm:h-32 w-full overflow-hidden">
+                  <ImageWithSkeleton src={categoria.imagen} alt={categoria.nombre} />
+
+                  {/* LETRERO DE AGOTADO */}
+                  {estaAgotado && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+                      <span className="bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-lg tracking-widest shadow-lg">AGOTADO</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 flex-1 flex flex-col justify-between items-center text-center">
+                  <h3 className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">{categoria.nombre}</h3>
+                  <span className={`text-[10px] sm:text-xs font-bold mt-2 px-2 py-1 rounded-md ${estaAgotado ? 'text-gray-500 bg-gray-100' : 'text-orange-600 bg-orange-50'}`}>
+                    {estaAgotado ? 'No disponible' : 'Ver opciones'}
+                  </span>
+                </div>
               </div>
-              <div className="p-3 flex-1 flex flex-col justify-between items-center text-center">
-                <h3 className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">{categoria.nombre}</h3>
-                <span className="text-[10px] sm:text-xs text-orange-600 font-bold mt-2 bg-orange-50 px-2 py-1 rounded-md">Ver opciones</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 

@@ -9,6 +9,7 @@ export const menuData = [
   {
     id: 'burgers',
     nombre: 'Burgers',
+    agotado: false,
     icono: '🍔',
     imagen: '/img/burger.png',
     usaRemoviblesGlobales: true,
@@ -32,6 +33,7 @@ export const menuData = [
   {
     id: 'jochos',
     nombre: 'Jochos',
+    agotado: false,
     icono: '🌭',
     imagen: '/img/jocho.png',
     usaRemoviblesGlobales: true,
@@ -53,6 +55,8 @@ export const menuData = [
   {
     id: 'alitas',
     nombre: 'Alitas',
+    agotado: false,
+
     icono: '🍗',
     imagen: '/img/alitas.png',
     usaRemoviblesGlobales: false,
@@ -65,6 +69,8 @@ export const menuData = [
   {
     id: 'boneless',
     nombre: 'Boneless',
+    agotado: false,
+
     icono: '🔥',
     imagen: '/img/boneless.png',
     usaRemoviblesGlobales: false,
@@ -75,6 +81,7 @@ export const menuData = [
   {
     id: 'papas_francesa',
     nombre: 'Papas Francesa',
+    agotado: false,
     icono: '🍟',
     imagen: '/img/papasfrancesa.png',
     usaRemoviblesGlobales: false,
@@ -89,6 +96,8 @@ export const menuData = [
   {
     id: 'papas_lokas',
     nombre: 'Papas Lokas',
+    agotado: false,
+
     icono: '🌪️',
     imagen: '/img/papaslokas.png',
     usaRemoviblesGlobales: false,
@@ -100,6 +109,7 @@ export const menuData = [
   {
     id: 'burritos',
     nombre: 'Burritos',
+    agotado: true,
     icono: '🌯',
     imagen: '/img/burrito.png ',
     usaRemoviblesGlobales: true,
@@ -110,6 +120,7 @@ export const menuData = [
   {
     id: 'alambres',
     nombre: 'Alambres',
+    agotado: true,
     icono: '🍳',
     imagen: '/img/alambre.png',
     usaRemoviblesGlobales: false,
@@ -120,6 +131,8 @@ export const menuData = [
   {
     id: 'hotcakes',
     nombre: 'Hot Cakes',
+    agotado: false,
+
     icono: '🥞',
     imagen: '/img/hotcakes.png',
     usaRemoviblesGlobales: false,
@@ -130,6 +143,8 @@ export const menuData = [
   {
     id: 'soda italiana',
     nombre: 'Soda Italiana',
+    agotado: false,
+
     imagen: '/img/sodaitaliana.png',
     usaRemoviblesGlobales: false,
     variantes: [{ id: 'ch1', nombre: 'Chica', precioBase: 40 }, { id: 'ch2', nombre: 'Grande', precioBase: 50 }],
@@ -139,6 +154,8 @@ export const menuData = [
   {
     id: 'frappes',
     nombre: 'Frappes',
+    agotado: false,
+
     icono: '☕',
     imagen: '/img/frappe.png',
     usaRemoviblesGlobales: false,
@@ -149,6 +166,8 @@ export const menuData = [
   {
     id: 'chamoyadas',
     nombre: 'Chamoyadas',
+    agotado: false,
+
     icono: '🥭',
     imagen: '/img/chamoyada.png',
     usaRemoviblesGlobales: false,
@@ -159,6 +178,8 @@ export const menuData = [
   {
     id: 'smoothies',
     nombre: 'Smoothies',
+    agotado: false,
+
     icono: '🥤',
     imagen: '/img/smoothies.png ',
     usaRemoviblesGlobales: false,
@@ -169,6 +190,8 @@ export const menuData = [
   {
     id: 'refresco_solo',
     nombre: 'Refrescos',
+    agotado: false,
+
     icono: '🥫',
     imagen: '/img/refresco.png',
     usaRemoviblesGlobales: false,
@@ -179,6 +202,8 @@ export const menuData = [
   {
     id: 'refresco_preparado',
     nombre: 'Refresco Preparado',
+    agotado: false,
+
     icono: '🍋',
     imagen: '/img/refrescopreparado.png',
     usaRemoviblesGlobales: false,
@@ -190,6 +215,7 @@ export const menuData = [
   {
     id: 'sandwiches',
     nombre: 'Sandwiches',
+    agotado: true,
     icono: '🥪',
     imagen: '/img/sandwich.png',
     usaRemoviblesGlobales: true,
@@ -203,6 +229,7 @@ export const menuData = [
   {
     id: 'sincronizadas',
     nombre: 'Sincronizadas',
+    agotado: true,
     icono: '🫓',
     imagen: '/img/sincronizada.png',
     usaRemoviblesGlobales: true,
