@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  menuData, removiblesGlobales, saboresSoda, 
-  sazonadoresPapas, removiblesPapas, listaSalsasAlitas 
-} from './data/menu';
-
+import { removiblesGlobales, saboresSoda, sazonadoresPapas, removiblesPapas, listaSalsasAlitas} from './data/menu';
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "./firebase";
+import AdminPanel from './AdminPanel';
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
 // ==========================================
@@ -34,14 +33,47 @@ export default function App() {
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  const [menuData, setMenuData] = useState([]);
+  const [cargandoMenu, setCargandoMenu] = useState(true);
+  const [modoAdmin, setModoAdmin] = useState(false);
+const [toquesLogo, setToquesLogo] = useState(0);
+
+// Función secreta: Si tocan el logo 3 veces, pide PIN
+useEffect(() => {
+  if (toquesLogo >= 3) {
+    const pin = prompt("Ingresa el PIN de Administrador:");
+    // TU CONTRASEÑA AQUÍ (Puedes cambiarla por la que quieras)
+    if (pin === "9999") { 
+      setModoAdmin(true);
+    } else {
+      alert("PIN Incorrecto");
+    }
+    setToquesLogo(0); // Reinicia el contador
+  }
+}, [toquesLogo]);
+
+  useEffect(() => {
+    // onSnapshot se queda "escuchando" cambios 24/7
+    const unsubscribe = onSnapshot(collection(db, "menu"), (snapshot) => {
+      const menuDesdeLaNube = [];
+      snapshot.forEach((doc) => {
+        // Combinamos el ID del documento con sus datos
+        menuDesdeLaNube.push({ id: doc.id, ...doc.data() });
+      });
+      setMenuData(menuDesdeLaNube);
+      setCargandoMenu(false);
+    });
+
+    // Apagamos el micrófono si el usuario cierra la página
+    return () => unsubscribe();
+  }, []);
+
+  // ==========================================
+
   const [carrito, setCarrito] = useState(() => {
     const guardado = localStorage.getItem('morchis_carrito');
     return guardado ? JSON.parse(guardado) : [];
   });
-
-  useEffect(() => {
-    localStorage.setItem('morchis_carrito', JSON.stringify(carrito));
-  }, [carrito]);
 
   // Estados del Cliente
   const [nombreCliente, setNombreCliente] = useState('');
@@ -87,6 +119,21 @@ export default function App() {
   
   const costoEnvioReal = tipoEntrega === 'domicilio' ? COSTO_ENVIO_DOMICILIO : 0;
   const totalPagar = totalProductos + costoEnvioReal;
+
+  if (cargandoMenu) {
+    if (modoAdmin) {
+  return <AdminPanel menuData={menuData} cerrarAdmin={() => setModoAdmin(false)} />;
+}
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-600 mb-4"></div>
+        <p className="font-black text-gray-900 tracking-widest uppercase text-center px-4">
+          Cargando el menú de Morchis...
+        </p>
+      </div>
+    );
+    
+  }
 
   const enviarAWhatsApp = () => {
     if (!nombreCliente.trim()) return alert('Por favor, ingresa tu nombre.');
@@ -147,10 +194,13 @@ export default function App() {
             <img 
               src="/img/logoicon.png" 
               alt="Logo Temporal" 
-              className="h-full object-contain"
+              className="h-full object-contain cursor-pointer"
+              onClick={() => setToquesLogo(prev => prev + 1)}
             />
             <h1 className="text-xl font-black tracking-tighter text-gray-900 uppercase">Morchis</h1>
           </div>
+          <div className="max-w-lg mx-auto p-4">
+      </div>
           <div className="text-right">
             <span className={`${colorEstado} px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider`}>
               {estadoLocal}
