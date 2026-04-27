@@ -5,6 +5,7 @@ export const sazonadoresPapas = ['Sal', 'Lemon Pepper', 'Queso', 'Fuego', 'Incó
 export const removiblesPapas = ['Con Todo','Todo Aparte','Sin Catsup', 'Sin Queso Líquido', 'Sin Salsa'];
 export const listaSalsasAlitas = ['Clásicas','Clásicos', 'Mango', 'Flamin Hot', 'Tamarindo Fuego', 'Búfalo', 'Manzana Habanero', 'Maracuyá', 'Pelon Pelo Rico', 'Pica Fresa', 'Ranch', 'BBQ'];
 export const saboresCafe =['Kinder Delice','Cajeta','Mazapan','Taro', 'Crema Irlandesa','Nuez']
+export const saboresFrappes = ['Cocolate', 'Fresa', 'Oreo', 'Kinder Delice', 'Mazapán', 'Cajeta', 'Crema Irlandesa', 'Gansito', 'Nuez', 'Café', 'Piña Colada', 'Taro'];
 export const menuData = [
   {
     id: 'burgers',
@@ -163,7 +164,7 @@ export const menuData = [
     imagen: '/img/frappe.png',
     usaRemoviblesGlobales: false,
     variantes: [{ id: 'fr1', nombre: 'Chico', precioBase: 50 }, { id: 'fr2', nombre: 'Grande', precioBase: 85 }],
-    opcionObligatoria: { titulo: 'Sabor del Frappe', opciones: ['Oreo', 'Moka', 'Cajeta', 'Mazapán', 'Vainilla'] },
+    opcionObligatoria: { titulo: 'Sabor', opciones: saboresFrappes },
     extras: [], combos: [{ id: 'c1', nombre: 'Solo Bebida', precioExtra: 0 }]
   },
   {
