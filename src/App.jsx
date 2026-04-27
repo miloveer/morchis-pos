@@ -215,7 +215,7 @@ export default function App() {
 
       <main className="max-w-lg mx-auto pt-6 px-4 pb-6">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {menuData.map((categoria) => {
+          {[...menuData].sort((a, b) => (a.agotado === b.agotado ? 0 : a.agotado ? 1 : -1)).map((categoria) => {
             const estaAgotado = categoria.agotado;
             
             return (
