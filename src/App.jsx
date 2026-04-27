@@ -166,13 +166,14 @@ export default function App() {
       mensaje += `* ${item.cantidad}x ${item.nombreProducto} (${item.variante})\n`;
       
       if  (item.proteina) mensaje += `  > Carne: ${item.proteina}\n`;
-      if (item.removibles && item.removibles.length > 0) mensaje += `  > Sin: ${item.removibles.join(', ')}\n`;
-      if (item.opcionObligatoria) mensaje += `  > Selección: ${item.opcionObligatoria}\n`;
+      if (item.removibles && item.removibles.length > 0) mensaje += `  * Sin: ${item.removibles.join(', ')}\n`;
+      if (item.opcionObligatoria) mensaje += `  * Selección: ${item.opcionObligatoria}\n`;
       if (item.salsas && item.salsas.length > 0) mensaje += `  > Salsas: ${item.salsas.join(', ')}\n`;
+      if (item.modoMezclaSalsa) mensaje += `  * Servir: ${item.modoMezclaSalsa}\n`;
       if (item.combo && !item.combo.includes('Solo')) {
         mensaje += `  > ${item.combo}\n`;
-        if (item.saborSoda) mensaje += `    - Sabor: ${item.saborSoda}\n`;
-        if (item.saborFrappe) mensaje += `  > Sabor: ${item.saborFrappe}\n`;
+        if (item.saborSoda) mensaje += `    * Sabor: ${item.saborSoda}\n`;
+        if (item.saborFrappe) mensaje += `  * Sabor: ${item.saborFrappe}\n`;
       }
       if (item.detallesPapas) {
         mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
@@ -414,7 +415,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [saborFrappe, setSaborFrappe] = useState(saboresFrappes ? saboresFrappes[0] : '');
   const [sazonadorPapas, setSazonadorPapas] = useState(sazonadoresPapas[0]);
   const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] = useState([]);
-  
+  const [modoMezclaSalsa, setModoMezclaSalsa] = useState('mitad y mitad');
   const [removibles, setRemovibles] = useState([]);
   const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
   const [notas, setNotas] = useState('');
@@ -441,6 +442,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
       combo: comboActual ? comboActual.nombre : null,
       opcionObligatoria: producto.opcionObligatoria ? opcionObligatoria : null,
       salsas: salsasSeleccionadas,
+      modoMezclaSalsa: producto.maxSalsas === 2 ? modoMezclaSalsa : null,
       saborSoda: (comboActual && comboActual.incluyeSoda) ? saborSoda : null,
       saborFrappe: producto.esFrappe ? saborFrappe : null,
       detallesPapas: ((comboActual && comboActual.incluyePapas) || producto.esProductoPapas) ? { sazonador: sazonadorPapas, sin: removiblesPapasSeleccionados } : null,
@@ -593,6 +595,26 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                   );
                 })}
               </div>
+              {salsasSeleccionadas.length === 2 && (
+                <div className="mt-4 p-3 bg-orange-100/50 rounded-xl border border-orange-200 animate-fade-in">
+                  <p className="text-[10px] font-black text-orange-900 uppercase mb-2 tracking-tighter">¿Cómo servimos tus 2 salsas?</p>
+                  <div className="flex gap-2">
+                    {['mitad y mitad', 'combinadas'].map((modo) => (
+                      <button
+                        key={modo}
+                        onClick={() => setModoMezclaSalsa(modo)}
+                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all border ${
+                          modoMezclaSalsa === modo 
+                            ? 'bg-orange-600 border-orange-600 text-white shadow-sm' 
+                            : 'bg-white border-orange-200 text-orange-800'
+                        }`}
+                      >
+                        {modo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
