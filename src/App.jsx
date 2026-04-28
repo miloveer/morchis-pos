@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react';
-import { removiblesGlobales, saboresSoda,saboresFrappes, sazonadoresPapas, removiblesPapas, listaSalsasAlitas} from './data/menu';
+import { useState, useEffect } from "react";
+import {
+          removiblesGlobales,
+          saboresSoda,
+          saboresFrappes,
+          sazonadoresPapas,
+          removiblesPapas,
+          listaSalsasAlitas,
+} from "./data/menu";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
-import AdminPanel from './AdminPanel';
-import LoginAdmin from './LoginAdmin';
+import AdminPanel from "./AdminPanel";
+import LoginAdmin from "./LoginAdmin";
 
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
 // ==========================================
-const TELEFONO_MORCHIS = "5641375355"; 
+const TELEFONO_MORCHIS = "5641375355";
 const COSTO_ENVIO_DOMICILIO = 10;
 const HORA_APERTURA = 16; // 4 PM
 const HORA_CIERRE = 23; // 11 PM
@@ -17,11 +24,13 @@ function ImageWithSkeleton({ src, alt }) {
   const [cargado, setCargado] = useState(false);
   return (
     <div className="relative w-full h-full bg-gray-200">
-      {!cargado && <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>}
+      {!cargado && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
+      )}
       <img
         src={src}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105 ${cargado ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105 ${cargado ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setCargado(true)}
       />
     </div>
@@ -31,7 +40,7 @@ function ImageWithSkeleton({ src, alt }) {
 export default function App() {
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const [toastMsg, setToastMsg] = useState("");
 
   // Estados de Firebase y Admin
   const [menuData, setMenuData] = useState([]);
@@ -55,15 +64,15 @@ export default function App() {
 
   // Estados del Carrito y Cliente
   const [carrito, setCarrito] = useState(() => {
-    const guardado = localStorage.getItem('morchis_carrito');
+    const guardado = localStorage.getItem("morchis_carrito");
     return guardado ? JSON.parse(guardado) : [];
   });
 
-  const [nombreCliente, setNombreCliente] = useState('');
-  const [tipoEntrega, setTipoEntrega] = useState('recoger'); // 'recoger' | 'domicilio' | 'sucursal'
-  const [direccion, setDireccion] = useState('');
-  const [metodoPago, setMetodoPago] = useState('efectivo'); 
-  const [billete, setBillete] = useState('');
+  const [nombreCliente, setNombreCliente] = useState("");
+  const [tipoEntrega, setTipoEntrega] = useState("recoger"); // 'recoger' | 'domicilio' | 'sucursal'
+  const [direccion, setDireccion] = useState("");
+  const [metodoPago, setMetodoPago] = useState("efectivo");
+  const [billete, setBillete] = useState("");
 
   // Lógica de Horarios
   const horaActual = new Date().getHours();
@@ -83,7 +92,7 @@ export default function App() {
 
   const mostrarToast = (mensaje) => {
     setToastMsg(mensaje);
-    setTimeout(() => setToastMsg(''), 3000);
+    setTimeout(() => setToastMsg(""), 3000);
   };
 
   const agregarAlCarrito = (nuevoItem) => {
@@ -92,15 +101,19 @@ export default function App() {
   };
 
   const quitarDelCarrito = (idUnico) => {
-    const nuevoCarrito = carrito.filter(item => item.idUnico !== idUnico);
+    const nuevoCarrito = carrito.filter((item) => item.idUnico !== idUnico);
     setCarrito(nuevoCarrito);
     if (nuevoCarrito.length === 0) setMostrarCarrito(false);
   };
 
   // Cálculos
   const totalArticulos = carrito.reduce((sum, item) => sum + item.cantidad, 0);
-  const totalProductos = carrito.reduce((sum, item) => sum + (item.totalItem * item.cantidad), 0);
-  const costoEnvioReal = tipoEntrega === 'domicilio' ? COSTO_ENVIO_DOMICILIO : 0;
+  const totalProductos = carrito.reduce(
+    (sum, item) => sum + item.totalItem * item.cantidad,
+    0,
+  );
+  const costoEnvioReal =
+    tipoEntrega === "domicilio" ? COSTO_ENVIO_DOMICILIO : 0;
   const totalPagar = totalProductos + costoEnvioReal;
 
   // ========================================================
@@ -122,19 +135,21 @@ export default function App() {
   // 2. Mostrar pantalla de Login si se solicitó
   if (mostrarLogin) {
     return (
-      <LoginAdmin 
+      <LoginAdmin
         onLoginExitoso={() => {
           setMostrarLogin(false);
           setModoAdmin(true);
-        }} 
-        onCancelar={() => setMostrarLogin(false)} 
+        }}
+        onCancelar={() => setMostrarLogin(false)}
       />
     );
   }
 
   // 3. Mostrar Panel de Administración si el login fue exitoso
   if (modoAdmin) {
-    return <AdminPanel menuData={menuData} cerrarAdmin={() => setModoAdmin(false)} />;
+    return (
+      <AdminPanel menuData={menuData} cerrarAdmin={() => setModoAdmin(false)} />
+    );
   }
 
   // ========================================================
@@ -142,45 +157,53 @@ export default function App() {
   // ========================================================
 
   const enviarAWhatsApp = () => {
-    if (!nombreCliente.trim()) return alert('Por favor, ingresa tu nombre.');
-    if (tipoEntrega === 'domicilio' && !direccion.trim()) return alert('Ingresa tu dirección de entrega.');
+    if (!nombreCliente.trim()) return alert("Por favor, ingresa tu nombre.");
+    if (tipoEntrega === "domicilio" && !direccion.trim())
+      return alert("Ingresa tu dirección de entrega.");
 
     let mensaje = "*NUEVO PEDIDO MORCHIS*\n\n";
     mensaje += `*CLIENTE:* ${nombreCliente.trim()}\n`;
-    
-    if (tipoEntrega === 'domicilio') {
+
+    if (tipoEntrega === "domicilio") {
       mensaje += `*ENTREGA:* A domicilio (+$10)\n`;
       mensaje += `*DIRECCIÓN:* ${direccion.trim()}\n`;
-    } else if (tipoEntrega === 'sucursal') {
+    } else if (tipoEntrega === "sucursal") {
       mensaje += `*ENTREGA:* Comer en Sucursal\n`;
     } else {
       mensaje += `*ENTREGA:* Paso a recoger\n`;
     }
 
-    mensaje += `*PAGO:* ${metodoPago === 'efectivo' ? 'Efectivo' : 'Transferencia'}\n`;
-    if (metodoPago === 'efectivo') mensaje += `*BILLETE:* $${billete || 'Exacto'}\n\n`;
-    
+    mensaje += `*PAGO:* ${metodoPago === "efectivo" ? "Efectivo" : "Transferencia"}\n`;
+    if (metodoPago === "efectivo")
+      mensaje += `*BILLETE:* $${billete || "Exacto"}\n\n`;
+
     mensaje += `*--- MI ORDEN ---*\n\n`;
 
-    carrito.forEach(item => {
+    carrito.forEach((item) => {
       mensaje += `* ${item.cantidad}x ${item.nombreProducto} (${item.variante})\n`;
-      
-      if  (item.proteina) mensaje += `  > Carne: ${item.proteina}\n`;
-      if (item.removibles && item.removibles.length > 0) mensaje += `  * Sin: ${item.removibles.join(', ')}\n`;
-      if (item.opcionObligatoria) mensaje += `  * Selección: ${item.opcionObligatoria}\n`;
-      if (item.salsas && item.salsas.length > 0) mensaje += `  > Salsas: ${item.salsas.join(', ')}\n`;
-      if (item.modoMezclaSalsa) mensaje += `  * Servir: ${item.modoMezclaSalsa}\n`;
-      if (item.combo && !item.combo.includes('Solo')) {
+
+      if (item.proteina) mensaje += `  > Carne: ${item.proteina}\n`;
+      if (item.removibles && item.removibles.length > 0)
+        mensaje += `  * Sin: ${item.removibles.join(", ")}\n`;
+      if (item.opcionObligatoria)
+        mensaje += `  * Selección: ${item.opcionObligatoria}\n`;
+      if (item.salsas && item.salsas.length > 0)
+        mensaje += `  > Salsas: ${item.salsas.join(", ")}\n`;
+      if (item.modoMezclaSalsa)
+        mensaje += `  * Servir: ${item.modoMezclaSalsa}\n`;
+      if (item.combo && !item.combo.includes("Solo")) {
         mensaje += `  > ${item.combo}\n`;
         if (item.saborSoda) mensaje += `    * Sabor: ${item.saborSoda}\n`;
         if (item.saborFrappe) mensaje += `  * Sabor: ${item.saborFrappe}\n`;
       }
       if (item.detallesPapas) {
         mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
-        if (item.detallesPapas.sin.length > 0) mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(', ')}\n`;
+        if (item.detallesPapas.sin.length > 0)
+          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(", ")}\n`;
       }
-      if (item.extras && item.extras.length > 0) mensaje += `  > Extras: ${item.extras.map(e => e.nombre).join(', ')}\n`;
-      
+      if (item.extras && item.extras.length > 0)
+        mensaje += `  > Extras: ${item.extras.map((e) => e.nombre).join(", ")}\n`;
+
       if (item.notas) mensaje += `  > Notas cocina: ${item.notas}\n`;
       mensaje += `\n`;
     });
@@ -188,10 +211,10 @@ export default function App() {
     mensaje += `*TOTAL A PAGAR: $${totalPagar}*\n\n`;
     mensaje += "¿Me confirman cuando mi pedido esté listo? Gracias.";
 
-    localStorage.removeItem('morchis_carrito');
+    localStorage.removeItem("morchis_carrito");
     setCarrito([]);
     const url = `https://wa.me/${TELEFONO_MORCHIS}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
 
   return (
@@ -199,15 +222,19 @@ export default function App() {
       <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 p-4 sticky top-0 z-20">
         <div className="flex justify-between items-center max-w-lg mx-auto">
           <div className="h-10 flex items-center gap-2">
-            <img 
-              src="/img/logoicon.png" 
-              alt="Logo Temporal" 
+            <img
+              src="/img/logoicon.png"
+              alt="Logo Temporal"
               className="h-full object-contain"
             />
-            <h1 className="text-xl font-black tracking-tighter text-gray-900 uppercase">Morchis</h1>
+            <h1 className="text-xl font-black tracking-tighter text-gray-900 uppercase">
+              Morchis
+            </h1>
           </div>
           <div className="text-right">
-            <span className={`${colorEstado} px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider`}>
+            <span
+              className={`${colorEstado} px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider`}
+            >
               {estadoLocal}
             </span>
           </div>
@@ -216,34 +243,47 @@ export default function App() {
 
       <main className="max-w-lg mx-auto pt-6 px-4 pb-6">
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {[...menuData].sort((a, b) => (a.agotado === b.agotado ? 0 : a.agotado ? 1 : -1)).map((categoria) => {
-            const estaAgotado = categoria.agotado;
-            
-            return (
-              <div 
-                key={categoria.id} 
-                id={categoria.id}
-                onClick={() => !estaAgotado && setProductoSeleccionado(categoria)}
-                className={`bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col group scroll-mt-32 ${estaAgotado ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all active:scale-95'}`}
-              >
-                <div className="relative h-28 sm:h-32 w-full overflow-hidden">
-                  <ImageWithSkeleton src={categoria.imagen} alt={categoria.nombre} />
+          {[...menuData]
+            .sort((a, b) => (a.agotado === b.agotado ? 0 : a.agotado ? 1 : -1))
+            .map((categoria) => {
+              const estaAgotado = categoria.agotado;
 
-                  {estaAgotado && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-                      <span className="bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-lg tracking-widest shadow-lg">AGOTADO</span>
-                    </div>
-                  )}
+              return (
+                <div
+                  key={categoria.id}
+                  id={categoria.id}
+                  onClick={() =>
+                    !estaAgotado && setProductoSeleccionado(categoria)
+                  }
+                  className={`bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col group scroll-mt-32 ${estaAgotado ? "opacity-60 grayscale cursor-not-allowed" : "cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all active:scale-95"}`}
+                >
+                  <div className="relative h-28 sm:h-32 w-full overflow-hidden">
+                    <ImageWithSkeleton
+                      src={categoria.imagen}
+                      alt={categoria.nombre}
+                    />
+
+                    {estaAgotado && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+                        <span className="bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-lg tracking-widest shadow-lg">
+                          AGOTADO
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 flex-1 flex flex-col justify-between items-center text-center">
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">
+                      {categoria.nombre}
+                    </h3>
+                    <span
+                      className={`text-[10px] sm:text-xs font-bold mt-2 px-2 py-1 rounded-md ${estaAgotado ? "text-gray-500 bg-gray-100" : "text-orange-600 bg-orange-50"}`}
+                    >
+                      {estaAgotado ? "No disponible" : "Ver opciones"}
+                    </span>
+                  </div>
                 </div>
-                <div className="p-3 flex-1 flex flex-col justify-between items-center text-center">
-                  <h3 className="font-bold text-gray-900 text-xs sm:text-sm leading-tight">{categoria.nombre}</h3>
-                  <span className={`text-[10px] sm:text-xs font-bold mt-2 px-2 py-1 rounded-md ${estaAgotado ? 'text-gray-500 bg-gray-100' : 'text-orange-600 bg-orange-50'}`}>
-                    {estaAgotado ? 'No disponible' : 'Ver opciones'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </main>
 
@@ -254,10 +294,10 @@ export default function App() {
       )}
 
       {productoSeleccionado && (
-        <ModalPersonalizacion 
-          key={productoSeleccionado.id} 
-          producto={productoSeleccionado} 
-          cerrar={() => setProductoSeleccionado(null)} 
+        <ModalPersonalizacion
+          key={productoSeleccionado.id}
+          producto={productoSeleccionado}
+          cerrar={() => setProductoSeleccionado(null)}
           agregarAlCarrito={agregarAlCarrito}
         />
       )}
@@ -266,10 +306,18 @@ export default function App() {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
           <div className="max-w-lg mx-auto flex justify-between items-center gap-4">
             <div className="flex-1">
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{totalArticulos} artículos</p>
-              <p className="font-black text-xl text-gray-900">${totalProductos} <span className="text-sm font-medium">MXN</span></p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+                {totalArticulos} artículos
+              </p>
+              <p className="font-black text-xl text-gray-900">
+                ${totalProductos}{" "}
+                <span className="text-sm font-medium">MXN</span>
+              </p>
             </div>
-            <button onClick={() => setMostrarCarrito(true)} className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-sm">
+            <button
+              onClick={() => setMostrarCarrito(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-sm"
+            >
               Ver Orden
             </button>
           </div>
@@ -279,71 +327,128 @@ export default function App() {
       {mostrarCarrito && (
         <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden animate-fade-in">
           <header className="bg-white p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">Checkout</h2>
-            <button onClick={() => setMostrarCarrito(false)} className="text-gray-900 font-bold text-sm bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors">Volver</button>
+            <h2 className="text-xl font-black text-gray-900 tracking-tight">
+              Checkout
+            </h2>
+            <button
+              onClick={() => setMostrarCarrito(false)}
+              className="text-gray-900 font-bold text-sm bg-gray-100 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Volver
+            </button>
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
             {carrito.length === 0 ? (
               <div className="text-center py-20">
-                <h3 className="text-xl font-bold text-gray-900">Tu orden está vacía</h3>
-                <button onClick={() => setMostrarCarrito(false)} className="mt-6 bg-gray-900 text-white font-bold px-6 py-3 rounded-lg text-sm">Regresar al menú</button>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Tu orden está vacía
+                </h3>
+                <button
+                  onClick={() => setMostrarCarrito(false)}
+                  className="mt-6 bg-gray-900 text-white font-bold px-6 py-3 rounded-lg text-sm"
+                >
+                  Regresar al menú
+                </button>
               </div>
             ) : (
               <>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="font-bold text-gray-900 mb-4 tracking-tight">Resumen de Orden</h3>
-                  {carrito.map(item => (
-                    <div key={item.idUnico} className="py-4 flex justify-between items-start border-b border-gray-100 last:border-0 last:pb-0">
+                  <h3 className="font-bold text-gray-900 mb-4 tracking-tight">
+                    Resumen de Orden
+                  </h3>
+                  {carrito.map((item) => (
+                    <div
+                      key={item.idUnico}
+                      className="py-4 flex justify-between items-start border-b border-gray-100 last:border-0 last:pb-0"
+                    >
                       <div className="flex-1 pr-4">
-                        <p className="font-black text-gray-900 text-sm mb-1">{item.cantidad}x {item.nombreProducto}</p>
-                        
+                        <p className="font-black text-gray-900 text-sm mb-1">
+                          {item.cantidad}x {item.nombreProducto}
+                        </p>
+
                         {/* Bloque de detalles minuciosos */}
                         <div className="text-[11px] text-gray-500 space-y-0.5 leading-tight mb-2">
-                          <p><span className="font-bold">Opción:</span> {item.variante}</p>
-                          
+                          <p>
+                            <span className="font-bold">Opción:</span>{" "}
+                            {item.variante}
+                          </p>
+
                           {item.proteina && (
-                            <p><span className="font-bold">Carne:</span> {item.proteina}</p>
+                            <p>
+                              <span className="font-bold">Carne:</span>{" "}
+                              {item.proteina}
+                            </p>
                           )}
-                          
+
                           {item.removibles && item.removibles.length > 0 && (
-                            <p className="text-red-500"><span className="font-bold">Sin:</span> {item.removibles.join(', ')}</p>
+                            <p className="text-red-500">
+                              <span className="font-bold">Sin:</span>{" "}
+                              {item.removibles.join(", ")}
+                            </p>
                           )}
 
                           {item.opcionObligatoria && (
-                            <p><span className="font-bold">Elección:</span> {item.opcionObligatoria}</p>
+                            <p>
+                              <span className="font-bold">Elección:</span>{" "}
+                              {item.opcionObligatoria}
+                            </p>
                           )}
 
                           {item.salsas && item.salsas.length > 0 && (
                             <p>
-                              <span className="font-bold">Salsas:</span> {item.salsas.join(', ')} 
-                              {item.modoMezclaSalsa && <span className="italic"> ({item.modoMezclaSalsa})</span>}
+                              <span className="font-bold">Salsas:</span>{" "}
+                              {item.salsas.join(", ")}
+                              {item.modoMezclaSalsa && (
+                                <span className="italic">
+                                  {" "}
+                                  ({item.modoMezclaSalsa})
+                                </span>
+                              )}
                             </p>
                           )}
 
-                          {item.combo && !item.combo.includes('Solo') && (
-                            <p><span className="font-bold">Combo:</span> {item.combo}</p>
+                          {item.combo && !item.combo.includes("Solo") && (
+                            <p>
+                              <span className="font-bold">Combo:</span>{" "}
+                              {item.combo}
+                            </p>
                           )}
 
                           {item.saborSoda && (
-                            <p><span className="font-bold">Refresco:</span> {item.saborSoda}</p>
+                            <p>
+                              <span className="font-bold">Refresco:</span>{" "}
+                              {item.saborSoda}
+                            </p>
                           )}
 
                           {item.saborFrappe && (
-                            <p><span className="font-bold">Frappe:</span> {item.saborFrappe}</p>
+                            <p>
+                              <span className="font-bold">Frappe:</span>{" "}
+                              {item.saborFrappe}
+                            </p>
                           )}
 
                           {item.detallesPapas && (
                             <div>
-                              <p><span className="font-bold">Papas:</span> {item.detallesPapas.sazonador}</p>
+                              <p>
+                                <span className="font-bold">Papas:</span>{" "}
+                                {item.detallesPapas.sazonador}
+                              </p>
                               {item.detallesPapas.sin.length > 0 && (
-                                <p className="text-red-500"><span className="font-bold">Papas sin:</span> {item.detallesPapas.sin.join(', ')}</p>
+                                <p className="text-red-500">
+                                  <span className="font-bold">Papas sin:</span>{" "}
+                                  {item.detallesPapas.sin.join(", ")}
+                                </p>
                               )}
                             </div>
                           )}
 
                           {item.extras && item.extras.length > 0 && (
-                            <p className="text-orange-600"><span className="font-bold">Extras:</span> {item.extras.map(e => e.nombre).join(', ')}</p>
+                            <p className="text-orange-600">
+                              <span className="font-bold">Extras:</span>{" "}
+                              {item.extras.map((e) => e.nombre).join(", ")}
+                            </p>
                           )}
 
                           {item.notas && (
@@ -353,10 +458,12 @@ export default function App() {
                           )}
                         </div>
 
-                        <p className="text-sm font-black text-gray-900">${item.totalItem * item.cantidad}</p>
+                        <p className="text-sm font-black text-gray-900">
+                          ${item.totalItem * item.cantidad}
+                        </p>
                       </div>
-                      <button 
-                        onClick={() => quitarDelCarrito(item.idUnico)} 
+                      <button
+                        onClick={() => quitarDelCarrito(item.idUnico)}
                         className="text-gray-400 hover:text-red-500 font-bold text-[10px] uppercase tracking-wider underline transition-colors pt-1"
                       >
                         Quitar
@@ -364,45 +471,99 @@ export default function App() {
                     </div>
                   ))}
                   {/* AQUÍ TERMINA EL NUEVO DESGLOSE */}
-
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-                  <h3 className="font-bold text-gray-900 tracking-tight">Detalles de Entrega</h3>
-                  
+                  <h3 className="font-bold text-gray-900 tracking-tight">
+                    Detalles de Entrega
+                  </h3>
+
                   <div>
-                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">Nombre completo *</label>
-                    <input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(e.target.value)} placeholder="¿A nombre de quién?" className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors font-medium text-[16px]" />
+                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
+                      Nombre completo *
+                    </label>
+                    <input
+                      type="text"
+                      value={nombreCliente}
+                      onChange={(e) => setNombreCliente(e.target.value)}
+                      placeholder="¿A nombre de quién?"
+                      className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors font-medium text-[16px]"
+                    />
                   </div>
 
                   <div>
-                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">Tipo de entrega</label>
+                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
+                      Tipo de entrega
+                    </label>
                     <div className="flex gap-2">
-                      <button onClick={() => setTipoEntrega('recoger')} className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === 'recoger' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>Recoger</button>
-                      <button onClick={() => setTipoEntrega('sucursal')} className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === 'sucursal' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>En Mesa</button>
-                      <button onClick={() => setTipoEntrega('domicilio')} className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === 'domicilio' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>Domicilio</button>
+                      <button
+                        onClick={() => setTipoEntrega("recoger")}
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === "recoger" ? "bg-gray-900 border-gray-900 text-white" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                      >
+                        Recoger
+                      </button>
+                      <button
+                        onClick={() => setTipoEntrega("sucursal")}
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === "sucursal" ? "bg-gray-900 border-gray-900 text-white" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                      >
+                        En Mesa
+                      </button>
+                      <button
+                        onClick={() => setTipoEntrega("domicilio")}
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === "domicilio" ? "bg-gray-900 border-gray-900 text-white" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                      >
+                        Domicilio
+                      </button>
                     </div>
                   </div>
 
-                  {tipoEntrega === 'domicilio' && (
+                  {tipoEntrega === "domicilio" && (
                     <div className="animate-fade-in mt-4">
-                      <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">Dirección completa *</label>
-                      <textarea value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, Número, Referencias..." className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors resize-none font-medium text-[16px]" rows="2"></textarea>
+                      <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
+                        Dirección completa *
+                      </label>
+                      <textarea
+                        value={direccion}
+                        onChange={(e) => setDireccion(e.target.value)}
+                        placeholder="Calle, Número, Referencias..."
+                        className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors resize-none font-medium text-[16px]"
+                        rows="2"
+                      ></textarea>
                     </div>
                   )}
 
                   <div className="border-t border-gray-100 pt-6">
-                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">Método de pago</label>
+                    <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
+                      Método de pago
+                    </label>
                     <div className="flex gap-2">
-                      <button onClick={() => setMetodoPago('efectivo')} className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${metodoPago === 'efectivo' ? 'bg-white border-orange-600 text-orange-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>Efectivo</button>
-                      <button onClick={() => setMetodoPago('transferencia')} className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${metodoPago === 'transferencia' ? 'bg-white border-orange-600 text-orange-600' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>Transferencia</button>
+                      <button
+                        onClick={() => setMetodoPago("efectivo")}
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${metodoPago === "efectivo" ? "bg-white border-orange-600 text-orange-600" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                      >
+                        Efectivo
+                      </button>
+                      <button
+                        onClick={() => setMetodoPago("transferencia")}
+                        className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${metodoPago === "transferencia" ? "bg-white border-orange-600 text-orange-600" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                      >
+                        Transferencia
+                      </button>
                     </div>
                   </div>
 
-                  {metodoPago === 'efectivo' && (
+                  {metodoPago === "efectivo" && (
                     <div className="animate-fade-in">
-                      <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">Cambio (Monto del billete)</label>
-                      <input type="number" placeholder="Ej. 500" value={billete} onChange={(e) => setBillete(e.target.value)} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors font-medium text-[16px]" />
+                      <label className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
+                        Cambio (Monto del billete)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Ej. 500"
+                        value={billete}
+                        onChange={(e) => setBillete(e.target.value)}
+                        className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors font-medium text-[16px]"
+                      />
                     </div>
                   )}
                 </div>
@@ -415,25 +576,39 @@ export default function App() {
               <div className="max-w-lg mx-auto">
                 <div className="flex justify-between text-gray-500 mb-2 text-sm">
                   <span>Subtotal:</span>
-                  <span className="font-medium text-gray-900">${totalProductos}</span>
+                  <span className="font-medium text-gray-900">
+                    ${totalProductos}
+                  </span>
                 </div>
-                {tipoEntrega === 'domicilio' && (
+                {tipoEntrega === "domicilio" && (
                   <div className="flex justify-between text-gray-500 mb-4 text-sm">
                     <span>Costo de envío:</span>
-                    <span className="font-medium text-gray-900">${COSTO_ENVIO_DOMICILIO}</span>
+                    <span className="font-medium text-gray-900">
+                      ${COSTO_ENVIO_DOMICILIO}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between mb-5 border-t border-gray-100 pt-4">
-                  <span className="font-black text-gray-900 text-lg tracking-tight">Total a pagar</span>
-                  <span className="font-black text-2xl text-gray-900">${totalPagar}</span>
+                  <span className="font-black text-gray-900 text-lg tracking-tight">
+                    Total a pagar
+                  </span>
+                  <span className="font-black text-2xl text-gray-900">
+                    ${totalPagar}
+                  </span>
                 </div>
-                
+
                 {estaAbierto ? (
-                  <button onClick={enviarAWhatsApp} className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 transition-all flex justify-center items-center gap-2">
+                  <button
+                    onClick={enviarAWhatsApp}
+                    className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 transition-all flex justify-center items-center gap-2"
+                  >
                     Enviar Orden
                   </button>
                 ) : (
-                  <button disabled className="w-full bg-gray-200 text-gray-400 p-4 rounded-xl font-bold text-lg cursor-not-allowed">
+                  <button
+                    disabled
+                    className="w-full bg-gray-200 text-gray-400 p-4 rounded-xl font-bold text-lg cursor-not-allowed"
+                  >
                     Fuera de horario
                   </button>
                 )}
@@ -447,114 +622,178 @@ export default function App() {
       {/* BOTÓN SECRETO EN EL FOOTER */}
       {/* ======================================================== */}
       <footer className="pt-10 pb-6 text-center border-t border-gray-200 mt-10">
-        <p className="text-gray-400 text-xs font-medium mb-4">© 2026 Morchis. Todos los derechos reservados.</p>
-        <button 
+        <p className="text-gray-400 text-xs font-medium mb-4">
+          © 2026 Morchis. Todos los derechos reservados.
+        </p>
+        <button
           onClick={() => setMostrarLogin(true)}
           className="text-gray-400 hover:text-gray-600 text-[10px] font-bold tracking-widest uppercase transition-colors"
         >
           Acceso Personal
         </button>
       </footer>
-      
     </div>
-  )
+  );
 }
 
 function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   // Buscamos la primera variante que NO esté agotada para seleccionarla por defecto
-  const indiceInicial = Math.max(0, producto.variantes.findIndex(v => !v.agotada));
+  const indiceInicial = Math.max(
+    0,
+    producto.variantes.findIndex((v) => !v.agotada),
+  );
   const [varianteIndex, setVarianteIndex] = useState(indiceInicial);
-  
+
   const [comboIndex, setComboIndex] = useState(0);
-  const [opcionObligatoria, setOpcionObligatoria] = useState(producto.opcionObligatoria ? producto.opcionObligatoria.opciones[0] : '');
-  
-  const proteinaInicial = producto.opcionProteina?.find(p => !p.agotada)?.nombre || '';
+  const [opcionObligatoria, setOpcionObligatoria] = useState(
+    producto.opcionObligatoria ? producto.opcionObligatoria.opciones[0] : "",
+  );
+
+  const proteinaInicial =
+    producto.opcionProteina?.find((p) => !p.agotada)?.nombre || "";
   const [proteina, setProteina] = useState(proteinaInicial);
 
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
   const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
-  const [saborFrappe, setSaborFrappe] = useState(saboresFrappes ? saboresFrappes[0] : '');
+  const [saborFrappe, setSaborFrappe] = useState(
+    saboresFrappes ? saboresFrappes[0] : "",
+  );
   const [sazonadorPapas, setSazonadorPapas] = useState(sazonadoresPapas[0]);
-  const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] = useState([]);
-  const [modoMezclaSalsa, setModoMezclaSalsa] = useState('mitad y mitad');
+  const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] =
+    useState([]);
+  const [modoMezclaSalsa, setModoMezclaSalsa] = useState("mitad y mitad");
   const [removibles, setRemovibles] = useState([]);
   const [extrasSeleccionados, setExtrasSeleccionados] = useState([]);
-  const [notas, setNotas] = useState('');
+  const [notas, setNotas] = useState("");
   const [cantidadItem, setCantidadItem] = useState(1);
-  const [quesoVariante, setQuesoVariante] = useState('');
+  const [quesoVariante, setQuesoVariante] = useState("");
 
-  const varianteActual = producto.variantes[varianteIndex] || producto.variantes[0];
+  const varianteActual =
+    producto.variantes[varianteIndex] || producto.variantes[0];
   const comboActual = producto.combos ? producto.combos[comboIndex] : null;
-  const totalExtras = extrasSeleccionados.reduce((sum, extra) => sum + extra.precio, 0);
-  
-  const precioUnitario = varianteActual.precioBase + (comboActual ? comboActual.precioExtra : 0) + totalExtras;
+  const totalExtras = extrasSeleccionados.reduce(
+    (sum, extra) => sum + extra.precio,
+    0,
+  );
+
+  const precioUnitario =
+    varianteActual.precioBase +
+    (comboActual ? comboActual.precioExtra : 0) +
+    totalExtras;
   const totalFinal = precioUnitario * cantidadItem;
 
   const handleAgregar = () => {
-    if (varianteActual.agotada) return alert('Esta variante está agotada.');
-    if (producto.maxSalsas && salsasSeleccionadas.length === 0) return alert('Selecciona al menos una salsa.');
-    if (varianteActual.opcionesQueso && !quesoVariante) return alert('Selecciona una opción de queso.');
-    const requiereProteina = producto.opcionProteina && !varianteActual.nombre.toLowerCase().includes('chicken');
+    if (varianteActual.agotada) return alert("Esta variante está agotada.");
+    if (producto.maxSalsas && salsasSeleccionadas.length === 0)
+      return alert("Selecciona al menos una salsa.");
+    if (varianteActual.opcionesQueso && !quesoVariante)
+      return alert("Selecciona una opción de queso.");
+    const requiereProteina =
+      producto.opcionProteina &&
+      !varianteActual.nombre.toLowerCase().includes("chicken");
 
     const itemParaCarrito = {
       nombreProducto: producto.nombre,
-      variante: varianteActual.opcionesQueso ? `${varianteActual.nombre} (${quesoVariante})` : varianteActual.nombre,
+      variante: varianteActual.opcionesQueso
+        ? `${varianteActual.nombre} (${quesoVariante})`
+        : varianteActual.nombre,
       proteina: requiereProteina ? proteina : null,
       combo: comboActual ? comboActual.nombre : null,
       opcionObligatoria: producto.opcionObligatoria ? opcionObligatoria : null,
       salsas: salsasSeleccionadas,
       modoMezclaSalsa: producto.maxSalsas === 2 ? modoMezclaSalsa : null,
-      saborSoda: (comboActual && comboActual.incluyeSoda) ? saborSoda : null,
+      saborSoda: comboActual && comboActual.incluyeSoda ? saborSoda : null,
       saborFrappe: producto.esFrappe ? saborFrappe : null,
-      detallesPapas: ((comboActual && comboActual.incluyePapas) || producto.esProductoPapas) ? { sazonador: sazonadorPapas, sin: removiblesPapasSeleccionados } : null,
+      detallesPapas:
+        (comboActual && comboActual.incluyePapas) || producto.esProductoPapas
+          ? { sazonador: sazonadorPapas, sin: removiblesPapasSeleccionados }
+          : null,
       extras: extrasSeleccionados,
       removibles: removibles,
       notas: notas,
       totalItem: precioUnitario,
-      cantidad: cantidadItem
+      cantidad: cantidadItem,
     };
     agregarAlCarrito(itemParaCarrito);
-    cerrar(); 
+    cerrar();
   };
 
-  const toggleSalsa = (salsa) => setSalsasSeleccionadas(prev => { if (prev.includes(salsa)) return prev.filter(s => s !== salsa); if (prev.length >= producto.maxSalsas) return prev; return [...prev, salsa]; });
-  const toggleArray = (item, setter) => setter(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
+  const toggleSalsa = (salsa) =>
+    setSalsasSeleccionadas((prev) => {
+      if (prev.includes(salsa)) return prev.filter((s) => s !== salsa);
+      if (prev.length >= producto.maxSalsas) return prev;
+      return [...prev, salsa];
+    });
+  const toggleArray = (item, setter) =>
+    setter((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
+    );
 
-  const mostrarProteina = producto.opcionProteina && !varianteActual.nombre.toLowerCase().includes('chicken');
+  const mostrarProteina =
+    producto.opcionProteina &&
+    !varianteActual.nombre.toLowerCase().includes("chicken");
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-0 sm:p-4 sm:items-center animate-fade-in">
       <div className="bg-white w-full max-w-md h-[92vh] sm:h-auto sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden">
-        
         <div className="relative h-48 sm:h-56 bg-gray-900 shrink-0">
-          <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" />
+          <img
+            src={producto.imagen}
+            alt={producto.nombre}
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-0"></div>
-          <button onClick={cerrar} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white hover:bg-white/40 w-10 h-10 rounded-full font-bold shadow-sm transition-colors flex items-center justify-center text-sm z-10">✕</button>
+          <button
+            onClick={cerrar}
+            className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white hover:bg-white/40 w-10 h-10 rounded-full font-bold shadow-sm transition-colors flex items-center justify-center text-sm z-10"
+          >
+            ✕
+          </button>
           <h2 className="absolute bottom-5 left-5 text-5xl sm:text-6xl font-black text-white drop-shadow-[0_4px_6px_rgba(0,0,0,0.9)] tracking-tighter z-10 leading-none uppercase">
             {producto.nombre}
           </h2>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-7 bg-white">
-          
           <section>
-            <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Elige tu opción <span className="text-orange-500">*</span></h3>
+            <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+              Elige tu opción <span className="text-orange-500">*</span>
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               {producto.variantes.map((variante, index) => {
                 const estaAgotada = variante.agotada;
                 return (
-                  <label key={variante.id} className={`flex flex-col p-3 border rounded-xl transition-all w-full text-left ${estaAgotada ? 'opacity-50 grayscale cursor-not-allowed bg-gray-50' : varianteIndex === index ? 'border-gray-900 bg-gray-50 shadow-sm cursor-pointer' : 'border-gray-200 bg-white hover:border-gray-300 cursor-pointer'}`}>
+                  <label
+                    key={variante.id}
+                    className={`flex flex-col p-3 border rounded-xl transition-all w-full text-left ${estaAgotada ? "opacity-50 grayscale cursor-not-allowed bg-gray-50" : varianteIndex === index ? "border-gray-900 bg-gray-50 shadow-sm cursor-pointer" : "border-gray-200 bg-white hover:border-gray-300 cursor-pointer"}`}
+                  >
                     <div className="flex items-start gap-2 w-full">
-                      <input type="radio" disabled={estaAgotada} checked={!estaAgotada && varianteIndex === index} onChange={() => setVarianteIndex(index)} className="w-4 h-4 mt-0.5 text-gray-900 accent-gray-900 shrink-0" />
+                      <input
+                        type="radio"
+                        disabled={estaAgotada}
+                        checked={!estaAgotada && varianteIndex === index}
+                        onChange={() => setVarianteIndex(index)}
+                        className="w-4 h-4 mt-0.5 text-gray-900 accent-gray-900 shrink-0"
+                      />
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
-                          <span className="font-black text-gray-900 text-sm block leading-tight pr-1">{variante.nombre}</span>
-                          {estaAgotada && <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">Agotado</span>}
+                          <span className="font-black text-gray-900 text-sm block leading-tight pr-1">
+                            {variante.nombre}
+                          </span>
+                          {estaAgotada && (
+                            <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">
+                              Agotado
+                            </span>
+                          )}
                         </div>
                         {variante.descripcion && (
-                          <span className="text-gray-500 text-[10px] mt-1 mb-1 block leading-tight">{variante.descripcion}</span>
+                          <span className="text-gray-500 text-[10px] mt-1 mb-1 block leading-tight">
+                            {variante.descripcion}
+                          </span>
                         )}
-                        <span className="text-orange-600 font-bold text-xs mt-1 block">${variante.precioBase}</span>
+                        <span className="text-orange-600 font-bold text-xs mt-1 block">
+                          ${variante.precioBase}
+                        </span>
                       </div>
                     </div>
                   </label>
@@ -565,14 +804,25 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
           {mostrarProteina && (
             <section className="bg-orange-50 p-4 rounded-xl border border-orange-100 animate-fade-in">
-              <h3 className="font-bold text-orange-900 mb-3 text-xs tracking-wider uppercase">Tipo de Carne <span className="text-orange-500">*</span></h3>
+              <h3 className="font-bold text-orange-900 mb-3 text-xs tracking-wider uppercase">
+                Tipo de Carne <span className="text-orange-500">*</span>
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {producto.opcionProteina.map(prot => {
+                {producto.opcionProteina.map((prot) => {
                   const estaAgotada = prot.agotada;
                   return (
-                    <button key={prot.nombre} disabled={estaAgotada} onClick={() => setProteina(prot.nombre)} className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight relative ${estaAgotada ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70' : proteina === prot.nombre ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
+                    <button
+                      key={prot.nombre}
+                      disabled={estaAgotada}
+                      onClick={() => setProteina(prot.nombre)}
+                      className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight relative ${estaAgotada ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70" : proteina === prot.nombre ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
+                    >
                       {prot.nombre}
-                      {estaAgotada && <span className="block text-[9px] font-black text-red-500 uppercase mt-1">Agotada</span>}
+                      {estaAgotada && (
+                        <span className="block text-[9px] font-black text-red-500 uppercase mt-1">
+                          Agotada
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -582,10 +832,16 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
           {varianteActual.opcionesQueso && (
             <section className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 animate-fade-in">
-              <h3 className="font-bold text-yellow-900 mb-3 text-xs tracking-wider uppercase">Elige tu Queso <span className="text-orange-500">*</span></h3>
+              <h3 className="font-bold text-yellow-900 mb-3 text-xs tracking-wider uppercase">
+                Elige tu Queso <span className="text-orange-500">*</span>
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {varianteActual.opcionesQueso.map(queso => (
-                  <button key={queso} onClick={() => setQuesoVariante(queso)} className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${quesoVariante === queso ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
+                {varianteActual.opcionesQueso.map((queso) => (
+                  <button
+                    key={queso}
+                    onClick={() => setQuesoVariante(queso)}
+                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${quesoVariante === queso ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
+                  >
                     {queso}
                   </button>
                 ))}
@@ -595,13 +851,15 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
           {/* NUEVA SECCIÓN DE FRAPPES */}
           {producto.esFrappe && (
             <section className="bg-pink-50 p-4 rounded-xl border border-pink-100 animate-fade-in">
-              <h3 className="font-bold text-pink-900 mb-3 text-xs tracking-wider uppercase">Sabor de Frappe <span className="text-pink-500">*</span></h3>
+              <h3 className="font-bold text-pink-900 mb-3 text-xs tracking-wider uppercase">
+                Sabor de Frappe <span className="text-pink-500">*</span>
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {saboresFrappes.map(sabor => (
-                  <button 
-                    key={sabor} 
-                    onClick={() => setSaborFrappe(sabor)} 
-                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborFrappe === sabor ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
+                {saboresFrappes.map((sabor) => (
+                  <button
+                    key={sabor}
+                    onClick={() => setSaborFrappe(sabor)}
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborFrappe === sabor ? "bg-gray-900 text-white border-gray-900 shadow-md" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
                   >
                     {sabor}
                   </button>
@@ -613,10 +871,17 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
           {/* ... OPCIÓN OBLIGATORIA Y REMOVIBLES (Se quedan igual) ... */}
           {producto.opcionObligatoria && (
             <section>
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">{producto.opcionObligatoria.titulo} <span className="text-orange-500">*</span></h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                {producto.opcionObligatoria.titulo}{" "}
+                <span className="text-orange-500">*</span>
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {producto.opcionObligatoria.opciones.map(opt => (
-                  <button key={opt} onClick={() => setOpcionObligatoria(opt)} className={`p-3 rounded-xl text-sm font-bold border transition-all text-left ${opcionObligatoria === opt ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
+                {producto.opcionObligatoria.opciones.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setOpcionObligatoria(opt)}
+                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left ${opcionObligatoria === opt ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
+                  >
                     {opt}
                   </button>
                 ))}
@@ -624,50 +889,84 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
             </section>
           )}
 
-          {(producto.usaRemoviblesGlobales || producto.removiblesEspecificos) && (
+          {(producto.usaRemoviblesGlobales ||
+            producto.removiblesEspecificos) && (
             <section className="border-t border-gray-100 pt-6">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">¿Deseas quitar algo?</h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                ¿Deseas quitar algo?
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {(producto.removiblesEspecificos || removiblesGlobales).map(item => {
-                  const isChecked = removibles.includes(item);
-                  return (
-                    <label key={item} className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-left ${isChecked ? 'border-gray-400 bg-gray-100' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                      <input type="checkbox" checked={isChecked} onChange={() => toggleArray(item, setRemovibles)} className="w-4 h-4 shrink-0 rounded text-gray-600 accent-gray-600" />
-                      <span className={`text-xs font-bold leading-tight ${isChecked ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item}</span>
-                    </label>
-                  )
-                })}
+                {(producto.removiblesEspecificos || removiblesGlobales).map(
+                  (item) => {
+                    const isChecked = removibles.includes(item);
+                    return (
+                      <label
+                        key={item}
+                        className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-left ${isChecked ? "border-gray-400 bg-gray-100" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleArray(item, setRemovibles)}
+                          className="w-4 h-4 shrink-0 rounded text-gray-600 accent-gray-600"
+                        />
+                        <span
+                          className={`text-xs font-bold leading-tight ${isChecked ? "text-gray-500 line-through" : "text-gray-700"}`}
+                        >
+                          {item}
+                        </span>
+                      </label>
+                    );
+                  },
+                )}
               </div>
             </section>
           )}
 
           {producto.maxSalsas && (
             <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-1 text-xs tracking-wider uppercase">Tus Salsas <span className="text-orange-500">*</span></h3>
+              <h3 className="font-bold text-gray-900 mb-1 text-xs tracking-wider uppercase">
+                Tus Salsas <span className="text-orange-500">*</span>
+              </h3>
               <div className="grid grid-cols-2 gap-2 mt-4">
-                {listaSalsasAlitas.map(salsa => {
+                {listaSalsasAlitas.map((salsa) => {
                   const isChecked = salsasSeleccionadas.includes(salsa);
-                  const isDisabled = !isChecked && salsasSeleccionadas.length >= producto.maxSalsas;
+                  const isDisabled =
+                    !isChecked &&
+                    salsasSeleccionadas.length >= producto.maxSalsas;
                   return (
-                    <label key={salsa} className={`flex items-center gap-2 p-3 bg-white rounded-lg border transition-all text-left ${isDisabled ? 'opacity-50' : 'cursor-pointer'} ${isChecked ? 'border-gray-900' : 'border-gray-200'}`}>
-                      <input type="checkbox" checked={isChecked} onChange={() => toggleSalsa(salsa)} disabled={isDisabled} className="w-4 h-4 shrink-0 rounded text-gray-900 accent-gray-900" />
-                      <span className="text-xs font-bold text-gray-800 leading-tight">{salsa}</span>
+                    <label
+                      key={salsa}
+                      className={`flex items-center gap-2 p-3 bg-white rounded-lg border transition-all text-left ${isDisabled ? "opacity-50" : "cursor-pointer"} ${isChecked ? "border-gray-900" : "border-gray-200"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleSalsa(salsa)}
+                        disabled={isDisabled}
+                        className="w-4 h-4 shrink-0 rounded text-gray-900 accent-gray-900"
+                      />
+                      <span className="text-xs font-bold text-gray-800 leading-tight">
+                        {salsa}
+                      </span>
                     </label>
                   );
                 })}
               </div>
               {salsasSeleccionadas.length === 2 && (
                 <div className="mt-4 p-3 bg-orange-100/50 rounded-xl border border-orange-200 animate-fade-in">
-                  <p className="text-[10px] font-black text-orange-900 uppercase mb-2 tracking-tighter">¿Cómo servimos tus 2 salsas?</p>
+                  <p className="text-[10px] font-black text-orange-900 uppercase mb-2 tracking-tighter">
+                    ¿Cómo servimos tus 2 salsas?
+                  </p>
                   <div className="flex gap-2">
-                    {['mitad y mitad', 'combinadas'].map((modo) => (
+                    {["mitad y mitad", "combinadas"].map((modo) => (
                       <button
                         key={modo}
                         onClick={() => setModoMezclaSalsa(modo)}
                         className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all border ${
-                          modoMezclaSalsa === modo 
-                            ? 'bg-orange-600 border-orange-600 text-white shadow-sm' 
-                            : 'bg-white border-orange-200 text-orange-800'
+                          modoMezclaSalsa === modo
+                            ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                            : "bg-white border-orange-200 text-orange-800"
                         }`}
                       >
                         {modo}
@@ -681,25 +980,48 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
           {producto.extras && producto.extras.length > 0 && (
             <section>
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Extras</h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                Extras
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {producto.extras.map(extra => {
+                {producto.extras.map((extra) => {
                   const estaAgotado = extra.agotada;
-                  const isChecked = extrasSeleccionados.some(e => e.id === extra.id);
+                  const isChecked = extrasSeleccionados.some(
+                    (e) => e.id === extra.id,
+                  );
                   return (
-                    <label key={extra.id} className={`flex flex-col p-3 border rounded-xl transition-all text-left ${estaAgotado ? 'opacity-50 grayscale cursor-not-allowed bg-gray-50' : isChecked ? 'border-gray-900 bg-gray-50 shadow-sm cursor-pointer' : 'border-gray-200 hover:border-gray-300 cursor-pointer'}`}>
+                    <label
+                      key={extra.id}
+                      className={`flex flex-col p-3 border rounded-xl transition-all text-left ${estaAgotado ? "opacity-50 grayscale cursor-not-allowed bg-gray-50" : isChecked ? "border-gray-900 bg-gray-50 shadow-sm cursor-pointer" : "border-gray-200 hover:border-gray-300 cursor-pointer"}`}
+                    >
                       <div className="flex items-start gap-2 w-full">
-                        <input type="checkbox" disabled={estaAgotado} checked={!estaAgotado && isChecked} onChange={() => toggleArray(extra, setExtrasSeleccionados)} className="w-4 h-4 mt-0.5 shrink-0 rounded text-gray-900 accent-gray-900" />
+                        <input
+                          type="checkbox"
+                          disabled={estaAgotado}
+                          checked={!estaAgotado && isChecked}
+                          onChange={() =>
+                            toggleArray(extra, setExtrasSeleccionados)
+                          }
+                          className="w-4 h-4 mt-0.5 shrink-0 rounded text-gray-900 accent-gray-900"
+                        />
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
-                            <span className="font-bold text-gray-900 text-sm block leading-tight pr-1">{extra.nombre}</span>
-                            {estaAgotado && <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">Agotado</span>}
+                            <span className="font-bold text-gray-900 text-sm block leading-tight pr-1">
+                              {extra.nombre}
+                            </span>
+                            {estaAgotado && (
+                              <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">
+                                Agotado
+                              </span>
+                            )}
                           </div>
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">+${extra.precio}</span>
+                          <span className="text-gray-500 font-medium text-xs mt-1 block">
+                            +${extra.precio}
+                          </span>
                         </div>
                       </div>
                     </label>
-                  )
+                  );
                 })}
               </div>
             </section>
@@ -707,18 +1029,34 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
           {producto.combos && producto.combos.length > 1 && (
             <section>
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Hazlo Combo</h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                Hazlo Combo
+              </h3>
               <div className="grid grid-cols-2 gap-2">
                 {producto.combos.map((combo, index) => (
-                  <label key={combo.id} className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-all text-left ${comboIndex === index ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <label
+                    key={combo.id}
+                    className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-all text-left ${comboIndex === index ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
                     <div className="flex items-start gap-2 w-full">
-                      <input type="radio" checked={comboIndex === index} onChange={() => setComboIndex(index)} className="w-4 h-4 mt-0.5 shrink-0 text-gray-900 accent-gray-900" />
+                      <input
+                        type="radio"
+                        checked={comboIndex === index}
+                        onChange={() => setComboIndex(index)}
+                        className="w-4 h-4 mt-0.5 shrink-0 text-gray-900 accent-gray-900"
+                      />
                       <div className="flex-1">
-                        <span className="font-bold text-gray-900 text-sm block leading-tight">{combo.nombre}</span>
+                        <span className="font-bold text-gray-900 text-sm block leading-tight">
+                          {combo.nombre}
+                        </span>
                         {combo.precioExtra > 0 ? (
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">+${combo.precioExtra}</span>
+                          <span className="text-gray-500 font-medium text-xs mt-1 block">
+                            +${combo.precioExtra}
+                          </span>
                         ) : (
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">Incluido</span>
+                          <span className="text-gray-500 font-medium text-xs mt-1 block">
+                            Incluido
+                          </span>
                         )}
                       </div>
                     </div>
@@ -731,10 +1069,16 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
           {/* ... SODA Y PAPAS (Se quedan igual) ... */}
           {comboActual && comboActual.incluyeSoda && (
             <section className="bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Sabor de Soda</h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                Sabor de Soda
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {saboresSoda.map(sabor => (
-                  <button key={sabor} onClick={() => setSaborSoda(sabor)} className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborSoda === sabor ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
+                {saboresSoda.map((sabor) => (
+                  <button
+                    key={sabor}
+                    onClick={() => setSaborSoda(sabor)}
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborSoda === sabor ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
+                  >
                     {sabor}
                   </button>
                 ))}
@@ -742,22 +1086,43 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
             </section>
           )}
 
-          {((comboActual && comboActual.incluyePapas) || producto.esProductoPapas) && (
+          {((comboActual && comboActual.incluyePapas) ||
+            producto.esProductoPapas) && (
             <section className="bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Preparación Papas</h3>
+              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+                Preparación Papas
+              </h3>
               <div className="grid grid-cols-2 gap-2 mb-4">
-                {sazonadoresPapas.map(saz => (
-                  <button key={saz} onClick={() => setSazonadorPapas(saz)} className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${sazonadorPapas === saz ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}>
+                {sazonadoresPapas.map((saz) => (
+                  <button
+                    key={saz}
+                    onClick={() => setSazonadorPapas(saz)}
+                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${sazonadorPapas === saz ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
+                  >
                     {saz}
                   </button>
                 ))}
               </div>
-              <h4 className="font-bold text-gray-900 mb-2 text-[10px] tracking-wider uppercase">¿Quitar Ingredientes?</h4>
+              <h4 className="font-bold text-gray-900 mb-2 text-[10px] tracking-wider uppercase">
+                ¿Quitar Ingredientes?
+              </h4>
               <div className="grid grid-cols-2 gap-2">
-                {removiblesPapas.map(item => (
-                  <label key={item} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer text-left">
-                    <input type="checkbox" checked={removiblesPapasSeleccionados.includes(item)} onChange={() => toggleArray(item, setRemoviblesPapasSeleccionados)} className="w-4 h-4 shrink-0 rounded text-gray-900 accent-gray-900" />
-                    <span className="text-xs font-medium text-gray-700 leading-tight">{item}</span>
+                {removiblesPapas.map((item) => (
+                  <label
+                    key={item}
+                    className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer text-left"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={removiblesPapasSeleccionados.includes(item)}
+                      onChange={() =>
+                        toggleArray(item, setRemoviblesPapasSeleccionados)
+                      }
+                      className="w-4 h-4 shrink-0 rounded text-gray-900 accent-gray-900"
+                    />
+                    <span className="text-xs font-medium text-gray-700 leading-tight">
+                      {item}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -765,24 +1130,45 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
           )}
 
           <section className="border-t border-gray-100 pt-6">
-            <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">Notas adicionales</h3>
-            <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Ej. Bien doradas, mucha servilleta..." className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none outline-none focus:border-gray-900 focus:bg-white font-medium text-[16px] text-gray-900 transition-colors" rows="2"></textarea>
+            <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
+              Notas adicionales
+            </h3>
+            <textarea
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Ej. Bien doradas, mucha servilleta..."
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none outline-none focus:border-gray-900 focus:bg-white font-medium text-[16px] text-gray-900 transition-colors"
+              rows="2"
+            ></textarea>
           </section>
-
         </div>
 
         <div className="p-4 bg-white border-t border-gray-100 shrink-0 pb-6 sm:pb-4 flex gap-3 items-center">
           <div className="flex items-center justify-between bg-gray-100 border border-gray-200 rounded-xl p-1 w-28 sm:w-32 shrink-0 h-14">
-            <button onClick={() => setCantidadItem(Math.max(1, cantidadItem - 1))} className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95">-</button>
-            <span className="font-black text-gray-900 text-lg">{cantidadItem}</span>
-            <button onClick={() => setCantidadItem(cantidadItem + 1)} className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95">+</button>
+            <button
+              onClick={() => setCantidadItem(Math.max(1, cantidadItem - 1))}
+              className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
+            >
+              -
+            </button>
+            <span className="font-black text-gray-900 text-lg">
+              {cantidadItem}
+            </span>
+            <button
+              onClick={() => setCantidadItem(cantidadItem + 1)}
+              className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
+            >
+              +
+            </button>
           </div>
-          <button onClick={handleAgregar} className={`flex-1 h-14 px-5 rounded-xl font-bold text-lg transition-all flex justify-between items-center shadow-sm ${varianteActual.agotada ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800 active:scale-95'}`}>
-            <span>{varianteActual.agotada ? 'Agotado' : 'Agregar'}</span>
+          <button
+            onClick={handleAgregar}
+            className={`flex-1 h-14 px-5 rounded-xl font-bold text-lg transition-all flex justify-between items-center shadow-sm ${varianteActual.agotada ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gray-900 text-white hover:bg-gray-800 active:scale-95"}`}
+          >
+            <span>{varianteActual.agotada ? "Agotado" : "Agregar"}</span>
             <span>${totalFinal}</span>
           </button>
         </div>
-
       </div>
     </div>
   );
