@@ -10,7 +10,7 @@ export default function LoginAdmin({ onLoginExitoso, onCancelar }) {
     
     // AQUÍ DEFINES TU USUARIO Y CONTRASEÑA
     // Más adelante podemos conectarlo a Firebase Auth, por ahora es local
-    if (usuario === 'morchis' && password === 'admin2026') {
+    if (usuario === 'morchis' && password === 'morchis1809') {
       onLoginExitoso();
     } else {
       setError(true);
