@@ -61,7 +61,8 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
                     {item.variantes.map(v => (
                       <div key={v.id} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-100 shadow-xs">
                         <button 
-                          onClick={() => actualizarSubItem(item.id, 'variantes', v.id, 'agotada', v.agotada)}
+                          // FIX: Aquí está el !v.agotada
+                          onClick={() => actualizarSubItem(item.id, 'variantes', v.id, 'agotada', !v.agotada)}
                           className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs ${v.agotada ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
                         >
                           {v.agotada ? '✕' : '✓'}
@@ -84,6 +85,27 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
                 </section>
               )}
 
+              {/* TIPOS DE CARNE */}
+              {item.opcionProteina && (
+                <section>
+                  <p className="text-[10px] font-black text-orange-400 uppercase mb-3 tracking-widest">Tipos de Carne</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {item.opcionProteina.map(prot => (
+                      <div key={prot.nombre} className="flex items-center gap-2 bg-orange-50/30 p-2 rounded-xl border border-orange-100">
+                        <button 
+                          // FIX: Aquí está el !prot.agotada
+                          onClick={() => actualizarSubItem(item.id, 'opcionProteina', prot.nombre, 'agotada', !prot.agotada)}
+                          className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] ${prot.agotada ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}
+                        >
+                          {prot.agotada ? '✕' : '✓'}
+                        </button>
+                        <p className={`flex-1 text-[11px] font-bold ${prot.agotada ? 'text-gray-400 line-through' : 'text-orange-900'}`}>{prot.nombre}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* EXTRAS */}
               {item.extras && (
                 <section>
@@ -92,12 +114,13 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
                     {item.extras.map(e => (
                       <div key={e.id} className="flex items-center gap-2 bg-blue-50/30 p-2 rounded-xl border border-blue-100">
                         <button 
-                          onClick={() => actualizarSubItem(item.id, 'extras', e.id, 'agotada', e.agotada)}
+                          // FIX: Aquí está el !e.agotada
+                          onClick={() => actualizarSubItem(item.id, 'extras', e.id, 'agotada', !e.agotada)}
                           className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] ${e.agotada ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}
                         >
                           {e.agotada ? '✕' : '✓'}
                         </button>
-                        <p className="flex-1 text-[11px] font-bold text-blue-900">{e.nombre}</p>
+                        <p className={`flex-1 text-[11px] font-bold ${e.agotada ? 'text-gray-400 line-through' : 'text-blue-900'}`}>{e.nombre}</p>
                         <input 
                           type="number"
                           defaultValue={e.precio}
