@@ -6,7 +6,6 @@ export const removiblesGlobales = [
   "Sin Cebolla",
   "Sin Mayonesa",
   "Sin Mostaza",
-  "Sin Piña",
   "Sin Catsup",
   "Sin Picante",
 ];
@@ -29,9 +28,8 @@ export const saboresSoda = [
 ];
 export const saboresRefresco = [
   "Coca Cola",
-  "Dr. Pepper",
+  "Jarrito de Tamarindo","Jarrito de Piña","Jarrito de Manzana","Jarrito de Tutifruti",
   "Limonada",
-  "Fresada",
   "Naranjada",
 ];
 export const sazonadoresPapas = [
@@ -46,6 +44,7 @@ export const sazonadoresPapas = [
 ];
 export const removiblesPapas = [
   "Con Todo",
+  "Solas",
   "Todo Aparte",
   "Sin Catsup",
   "Sin Queso Líquido",

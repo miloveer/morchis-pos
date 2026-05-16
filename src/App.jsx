@@ -81,7 +81,7 @@ export default function App() {
   const estaAbierto = horaActual >= HORA_APERTURA && horaActual < HORA_CIERRE;
 
   if (estaAbierto) {
-    if (horaActual === HORA_CIERRE - 1) {
+    if (horaActual === HORA_CIERRE - 2) {
       estadoLocal = "CERRAMOS PRONTO";
       colorEstado = "bg-orange-100 text-orange-700 border border-orange-300";
     } else {
@@ -165,7 +165,7 @@ export default function App() {
     mensaje += `*CLIENTE:* ${nombreCliente.trim()}\n`;
 
     if (tipoEntrega === "domicilio") {
-      mensaje += `*ENTREGA:* A domicilio (+$10)\n`;
+      mensaje += `*ENTREGA:* A domicilio\n`;
       mensaje += `*DIRECCIÓN:* ${direccion.trim()}\n`;
     } else if (tipoEntrega === "sucursal") {
       mensaje += `*ENTREGA:* Comer en Sucursal\n`;
@@ -182,9 +182,9 @@ export default function App() {
     carrito.forEach((item) => {
       mensaje += `* ${item.cantidad}x ${item.nombreProducto} (${item.variante})\n`;
 
-      if (item.proteina) mensaje += `  > Carne: ${item.proteina}\n`;
+      if (item.proteina) mensaje += `  > Tipo de Carne: ${item.proteina}\n`;
       if (item.removibles && item.removibles.length > 0)
-        mensaje += `  * Sin: ${item.removibles.join(", ")}\n`;
+        mensaje += `  * ${item.removibles.join(", ")}\n`;
       if (item.opcionObligatoria)
         mensaje += `  * Selección: ${item.opcionObligatoria}\n`;
       if (item.salsas && item.salsas.length > 0)
@@ -196,10 +196,11 @@ export default function App() {
         if (item.saborSoda) mensaje += `    * Sabor: ${item.saborSoda}\n`;
         if (item.saborFrappe) mensaje += `  * Sabor: ${item.saborFrappe}\n`;
       }
-      if (item.detallesPapas) {
-        mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
-        if (item.detallesPapas.sin.length > 0)
-          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(", ")}\n`;
+      if (item.detallesPapas.sin.length > 0)
+          mensaje += `   *  ${item.detallesPapas.sin.join(", ")}\n`;
+        if (item.detallesPapas) {
+          mensaje += `  *Sazonador: ${item.detallesPapas.sazonador}\n`;
+
       }
       if (item.extras && item.extras.length > 0)
         mensaje += `  > Extras: ${item.extras.map((e) => e.nombre).join(", ")}\n`;
