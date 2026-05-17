@@ -9,7 +9,7 @@ export default function LoginAdmin({ onLoginExitoso, onCancelar }) {
     e.preventDefault();
     
     // AQUÍ DEFINES TU USUARIO Y CONTRASEÑA
-    // Más adelante podemos conectarlo a Firebase Auth, por ahora es local
+    // Más adelante tengo que conectarlo a Firebase Auth, por ahora es local
     if (usuario === 'morchis' && password === 'morchis1809') {
       onLoginExitoso();
     } else {
@@ -38,7 +38,7 @@ export default function LoginAdmin({ onLoginExitoso, onCancelar }) {
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-900 focus:bg-white transition-colors text-sm font-medium"
-              placeholder="Ej. morchis"
+              placeholder="Ingrese su usuario"
               required
             />
           </div>
