@@ -196,11 +196,12 @@ export default function App() {
         if (item.saborSoda) mensaje += `    * Sabor: ${item.saborSoda}\n`;
         if (item.saborFrappe) mensaje += `  * Sabor: ${item.saborFrappe}\n`;
       }
-      if (item.detallesPapas.sin.length > 0)
-          mensaje += `   *  ${item.detallesPapas.sin.join(", ")}\n`;
-        if (item.detallesPapas) {
-          mensaje += `  *Sazonador: ${item.detallesPapas.sazonador}\n`;
-
+      if (item.detallesPapas) {
+        mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
+        // EL CAMBIO ESTÁ AQUÍ: Agregamos ?. para proteger la lectura
+        if (item.detallesPapas?.sin?.length > 0) {
+          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(', ')}\n`;
+        }
       }
       if (item.extras && item.extras.length > 0)
         mensaje += `  > Extras: ${item.extras.map((e) => e.nombre).join(", ")}\n`;
@@ -432,15 +433,10 @@ export default function App() {
 
                           {item.detallesPapas && (
                             <div>
-                              <p>
-                                <span className="font-bold">Papas:</span>{" "}
-                                {item.detallesPapas.sazonador}
-                              </p>
-                              {item.detallesPapas.sin.length > 0 && (
-                                <p className="text-red-500">
-                                  <span className="font-bold">Papas sin:</span>{" "}
-                                  {item.detallesPapas.sin.join(", ")}
-                                </p>
+                              <p><span className="font-bold">Papas:</span> {item.detallesPapas.sazonador}</p>
+                              {/* EL CAMBIO ESTÁ AQUÍ: Protegemos con ?. */}
+                              {item.detallesPapas?.sin?.length > 0 && (
+                                <p className="text-red-500"><span className="font-bold">Papas sin:</span> {item.detallesPapas.sin.join(', ')}</p>
                               )}
                             </div>
                           )}
