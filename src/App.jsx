@@ -11,6 +11,7 @@ import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import AdminPanel from "./AdminPanel";
 import LoginAdmin from "./LoginAdmin";
+import {guardarPedido} from "./services/ordersService";
 
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
@@ -41,6 +42,7 @@ export default function App() {
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+  const [enviandoPedido, setEnviandoPedido] = useState(false);
 
   // Estados de Firebase y Admin
   const [menuData, setMenuData] = useState([]);
@@ -73,6 +75,10 @@ export default function App() {
   const [direccion, setDireccion] = useState("");
   const [metodoPago, setMetodoPago] = useState("efectivo");
   const [billete, setBillete] = useState("");
+
+  useEffect(() => {
+  localStorage.setItem("morchis_carrito", JSON.stringify(carrito));
+}, [carrito]);
 
   // Lógica de Horarios
   const horaActual = new Date().getHours();
@@ -156,12 +162,60 @@ export default function App() {
   // VISTA PRINCIPAL DE LA APP (Cliente)
   // ========================================================
 
-  const enviarAWhatsApp = () => {
-    if (!nombreCliente.trim()) return alert("Por favor, ingresa tu nombre.");
-    if (tipoEntrega === "domicilio" && !direccion.trim())
-      return alert("Ingresa tu dirección de entrega.");
+  const enviarAWhatsApp = async () => {
+  if (enviandoPedido) return;
+  if (!nombreCliente.trim()) return alert("Por favor, ingresa tu nombre.");
+  if (tipoEntrega === "domicilio" && !direccion.trim())
+    return alert("Ingresa tu dirección de entrega.");
+
+  setEnviandoPedido(true);
+
+  try {
+    const pedido = {
+      cliente: {
+        nombre: nombreCliente.trim(),
+        direccion: tipoEntrega === "domicilio" ? direccion.trim() : "",
+      },
+      entrega: {
+        tipo: tipoEntrega,
+        costoEnvio: costoEnvioReal,
+      },
+      pago: {
+        metodo: metodoPago,
+        billete: metodoPago === "efectivo" ? billete || "Exacto" : "",
+      },
+      productos: carrito.map((item) => ({
+        idUnico: item.idUnico,
+        nombreProducto: item.nombreProducto,
+        variante: item.variante,
+        cantidad: item.cantidad,
+        precioUnitario: item.totalItem,
+        total: item.totalItem * item.cantidad,
+        proteina: item.proteina || "",
+        removibles: item.removibles || [],
+        opcionObligatoria: item.opcionObligatoria || "",
+        salsas: item.salsas || [],
+        modoMezclaSalsa: item.modoMezclaSalsa || "",
+        combo: item.combo || "",
+        saborSoda: item.saborSoda || "",
+        saborFrappe: item.saborFrappe || "",
+        detallesPapas: item.detallesPapas || null,
+        extras: item.extras || [],
+        notas: item.notas || "",
+      })),
+      totales: {
+        subtotal: totalProductos,
+        envio: costoEnvioReal,
+        total: totalPagar,
+        articulos: totalArticulos,
+      },
+      origen: "web-menu",
+    };
+
+    const pedidoId = await guardarPedido(pedido);
 
     let mensaje = "*NUEVO PEDIDO MORCHIS*\n\n";
+    mensaje += `*FOLIO:* ${pedidoId.slice(-6).toUpperCase()}\n`;
     mensaje += `*CLIENTE:* ${nombreCliente.trim()}\n`;
 
     if (tipoEntrega === "domicilio") {
@@ -198,9 +252,8 @@ export default function App() {
       }
       if (item.detallesPapas) {
         mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
-        // EL CAMBIO ESTÁ AQUÍ: Agregamos ?. para proteger la lectura
         if (item.detallesPapas?.sin?.length > 0) {
-          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(', ')}\n`;
+          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(", ")}\n`;
         }
       }
       if (item.extras && item.extras.length > 0)
@@ -215,9 +268,20 @@ export default function App() {
 
     localStorage.removeItem("morchis_carrito");
     setCarrito([]);
+    setMostrarCarrito(false);
+    setNombreCliente("");
+    setDireccion("");
+    setBillete("");
+
     const url = `https://wa.me/${TELEFONO_MORCHIS}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, "_blank");
-  };
+  } catch (error) {
+    console.error("Error al guardar el pedido:", error);
+    alert("No se pudo guardar el pedido. Revisa tu conexión e inténtalo otra vez.");
+  } finally {
+    setEnviandoPedido(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] pb-28 text-gray-900">
@@ -596,11 +660,12 @@ export default function App() {
 
                 {estaAbierto ? (
                   <button
-                    onClick={enviarAWhatsApp}
-                    className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 transition-all flex justify-center items-center gap-2"
-                  >
-                    Enviar Orden
-                  </button>
+  onClick={enviarAWhatsApp}
+  disabled={enviandoPedido}
+  className="w-full bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 transition-all flex justify-center items-center gap-2"
+>
+  {enviandoPedido ? "Guardando pedido..." : "Enviar Orden"}
+</button>
                 ) : (
                   <button
                     disabled
