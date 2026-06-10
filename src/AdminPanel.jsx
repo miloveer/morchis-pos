@@ -54,13 +54,29 @@ function formatearFecha(fechaFirebase) {
 function obtenerFolio(pedidoId) {
   return pedidoId.slice(-6).toUpperCase();
 }
+function obtenerFechaInputLocal(fecha = new Date()) {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function pedidoPerteneceAFecha(pedido, fechaFiltro) {
+  if (!pedido.creadoEn?.toDate) return false;
+
+  const fechaPedido = obtenerFechaInputLocal(pedido.creadoEn.toDate());
+
+  return fechaPedido === fechaFiltro;
+}
 
 export default function AdminPanel({ menuData, cerrarAdmin }) {
   const [seccionActiva, setSeccionActiva] = useState("pedidos");
-  const [pedidos, setPedidos] = useState([]);
-  const [cargandoPedidos, setCargandoPedidos] = useState(true);
-  const [errorPedidos, setErrorPedidos] = useState("");
-  const [actualizandoPedidoId, setActualizandoPedidoId] = useState("");
+const [pedidos, setPedidos] = useState([]);
+const [fechaFiltro, setFechaFiltro] = useState(obtenerFechaInputLocal());
+const [cargandoPedidos, setCargandoPedidos] = useState(true);
+const [errorPedidos, setErrorPedidos] = useState("");
+const [actualizandoPedidoId, setActualizandoPedidoId] = useState("");
 
   useEffect(() => {
     const cancelarEscucha = escucharPedidos(
@@ -77,23 +93,53 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
     return () => cancelarEscucha();
   }, []);
 
-  const resumenPedidos = useMemo(() => {
-    const pedidosActivos = pedidos.filter(
-      (pedido) => pedido.estado !== "cancelado"
-    );
+  const pedidosDelDia = useMemo(() => {
+  return pedidos.filter((pedido) => pedidoPerteneceAFecha(pedido, fechaFiltro));
+}, [pedidos, fechaFiltro]);
 
-    return {
-      totalPedidos: pedidos.length,
-      nuevos: pedidos.filter((pedido) => pedido.estado === "nuevo").length,
-      preparando: pedidos.filter((pedido) => pedido.estado === "preparando")
-        .length,
-      listos: pedidos.filter((pedido) => pedido.estado === "listo").length,
-      ventaTotal: pedidosActivos.reduce(
-        (total, pedido) => total + Number(pedido.totales?.total || 0),
-        0
-      ),
-    };
-  }, [pedidos]);
+const resumenPedidos = useMemo(() => {
+  const pedidosActivos = pedidosDelDia.filter(
+    (pedido) => pedido.estado !== "cancelado"
+  );
+
+  const ventaTotal = pedidosActivos.reduce(
+    (total, pedido) => total + Number(pedido.totales?.total || 0),
+    0
+  );
+
+  const ventaEfectivo = pedidosActivos
+    .filter((pedido) => pedido.pago?.metodo === "efectivo")
+    .reduce((total, pedido) => total + Number(pedido.totales?.total || 0), 0);
+
+  const ventaTransferencia = pedidosActivos
+    .filter((pedido) => pedido.pago?.metodo === "transferencia")
+    .reduce((total, pedido) => total + Number(pedido.totales?.total || 0), 0);
+
+  const envioTotal = pedidosActivos.reduce(
+    (total, pedido) => total + Number(pedido.totales?.envio || 0),
+    0
+  );
+
+  const ticketPromedio =
+    pedidosActivos.length > 0 ? ventaTotal / pedidosActivos.length : 0;
+
+  return {
+    totalPedidos: pedidosDelDia.length,
+    nuevos: pedidosDelDia.filter((pedido) => pedido.estado === "nuevo").length,
+    preparando: pedidosDelDia.filter((pedido) => pedido.estado === "preparando")
+      .length,
+    listos: pedidosDelDia.filter((pedido) => pedido.estado === "listo").length,
+    entregados: pedidosDelDia.filter((pedido) => pedido.estado === "entregado")
+      .length,
+    cancelados: pedidosDelDia.filter((pedido) => pedido.estado === "cancelado")
+      .length,
+    ventaTotal,
+    ventaEfectivo,
+    ventaTransferencia,
+    envioTotal,
+    ticketPromedio,
+  };
+}, [pedidosDelDia]);
 
   const toggleEstado = async (categoriaId, campo, valorActual) => {
     try {
@@ -140,52 +186,149 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
 
   const renderPedidos = () => (
     <div className="space-y-5">
-      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-            Pedidos
-          </p>
-          <p className="text-2xl font-black text-gray-900">
-            {resumenPedidos.totalPedidos}
-          </p>
-        </div>
+      <section className="bg-white rounded-3xl p-4 border border-gray-200 shadow-sm">
+  <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+        Corte de caja
+      </p>
+      <h2 className="text-xl font-black text-gray-900">
+        Pedidos por día
+      </h2>
+      <p className="text-sm text-gray-500 font-semibold mt-1">
+        Selecciona una fecha para revisar ventas, métodos de pago y pedidos.
+      </p>
+    </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-blue-100 shadow-sm">
-          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
-            Nuevos
-          </p>
-          <p className="text-2xl font-black text-blue-700">
-            {resumenPedidos.nuevos}
-          </p>
-        </div>
+    <div className="flex flex-col sm:flex-row gap-2">
+      <input
+        type="date"
+        value={fechaFiltro}
+        onChange={(event) => setFechaFiltro(event.target.value)}
+        className="bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 font-black text-gray-800 outline-none"
+      />
 
-        <div className="bg-white rounded-2xl p-4 border border-orange-100 shadow-sm">
-          <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
-            Preparando
-          </p>
-          <p className="text-2xl font-black text-orange-700">
-            {resumenPedidos.preparando}
-          </p>
-        </div>
+      <button
+        onClick={() => setFechaFiltro(obtenerFechaInputLocal())}
+        className="bg-gray-900 text-white px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest"
+      >
+        Hoy
+      </button>
+    </div>
+  </div>
+</section>
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+  <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+      Pedidos
+    </p>
+    <p className="text-2xl font-black text-gray-900">
+      {resumenPedidos.totalPedidos}
+    </p>
+  </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm">
-          <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
-            Listos
-          </p>
-          <p className="text-2xl font-black text-purple-700">
-            {resumenPedidos.listos}
-          </p>
-        </div>
+  <div className="bg-white rounded-2xl p-4 border border-green-100 shadow-sm">
+    <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">
+      Venta total
+    </p>
+    <p className="text-2xl font-black text-green-700">
+      ${resumenPedidos.ventaTotal.toFixed(2)}
+    </p>
+  </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-green-100 shadow-sm col-span-2 lg:col-span-1">
-          <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">
-            Venta registrada
-          </p>
-          <p className="text-2xl font-black text-green-700">
-            ${resumenPedidos.ventaTotal}
-          </p>
-        </div>
-      </section>
+  <div className="bg-white rounded-2xl p-4 border border-orange-100 shadow-sm">
+    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
+      Efectivo
+    </p>
+    <p className="text-2xl font-black text-orange-700">
+      ${resumenPedidos.ventaEfectivo.toFixed(2)}
+    </p>
+  </div>
+
+  <div className="bg-white rounded-2xl p-4 border border-blue-100 shadow-sm">
+    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+      Transferencia
+    </p>
+    <p className="text-2xl font-black text-blue-700">
+      ${resumenPedidos.ventaTransferencia.toFixed(2)}
+    </p>
+  </div>
+
+  <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm">
+    <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
+      Listos
+    </p>
+    <p className="text-2xl font-black text-purple-700">
+      {resumenPedidos.listos}
+    </p>
+  </div>
+
+  <div className="bg-white rounded-2xl p-4 border border-emerald-100 shadow-sm">
+    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+      Entregados
+    </p>
+    <p className="text-2xl font-black text-emerald-700">
+      {resumenPedidos.entregados}
+    </p>
+  </div>
+
+  <div className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm">
+    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">
+      Cancelados
+    </p>
+    <p className="text-2xl font-black text-red-700">
+      {resumenPedidos.cancelados}
+    </p>
+  </div>
+
+  <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+      Ticket promedio
+    </p>
+    <p className="text-2xl font-black text-gray-900">
+      ${resumenPedidos.ticketPromedio.toFixed(2)}
+    </p>
+  </div>
+</section>
+
+<section className="bg-gray-900 text-white rounded-3xl p-5 shadow-sm">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+        Resumen operativo
+      </p>
+      <h3 className="text-xl font-black mt-1">
+        Corte del {fechaFiltro}
+      </h3>
+    </div>
+
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <p className="text-gray-400 font-bold">Nuevos</p>
+        <p className="text-xl font-black">{resumenPedidos.nuevos}</p>
+      </div>
+
+      <div>
+        <p className="text-gray-400 font-bold">Preparando</p>
+        <p className="text-xl font-black">{resumenPedidos.preparando}</p>
+      </div>
+
+      <div>
+        <p className="text-gray-400 font-bold">Envíos cobrados</p>
+        <p className="text-xl font-black">
+          ${resumenPedidos.envioTotal.toFixed(2)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-gray-400 font-bold">Venta neta</p>
+        <p className="text-xl font-black">
+          ${resumenPedidos.ventaTotal.toFixed(2)}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 
       {cargandoPedidos && (
         <div className="bg-white rounded-3xl p-8 text-center border border-gray-200">
@@ -200,12 +343,12 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
         </div>
       )}
 
-      {!cargandoPedidos && pedidos.length === 0 && (
+      {!cargandoPedidos && pedidosDelDia.length === 0 && (
         <div className="bg-white rounded-3xl p-8 text-center border border-gray-200">
           <p className="text-4xl mb-2">🍔</p>
           <p className="font-black text-gray-800">Todavía no hay pedidos</p>
           <p className="text-sm text-gray-500 mt-1">
-            Cuando alguien haga un pedido desde el menú, aparecerá aquí.
+            No hay pedidos registrados para la fecha seleccionada.
           </p>
         </div>
       )}
