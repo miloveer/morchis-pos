@@ -7,6 +7,11 @@ import {
           removiblesPapas,
           listaSalsasAlitas,
 } from "./data/menu";
+import {
+  PRECIO_ADEREZOS_PAPAS_APARTE,
+  PRECIO_SALSA_APARTE,
+} from "./config/precios";
+import { calcularCargosAparte } from "./utils/calcularCargosAparte";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import AdminPanel from "./AdminPanel";
@@ -189,6 +194,8 @@ export default function App() {
         mensaje += `  * Selección: ${item.opcionObligatoria}\n`;
       if (item.salsas && item.salsas.length > 0)
         mensaje += `  > Salsas: ${item.salsas.join(", ")}\n`;
+      if (item.salsasAparte)
+        mensaje += `  > Salsas aparte: ${item.salsas.length} (+$${item.cargosAparte.cargoSalsas})\n`;
       if (item.modoMezclaSalsa)
         mensaje += `  * Servir: ${item.modoMezclaSalsa}\n`;
       if (item.combo && !item.combo.includes("Solo")) {
@@ -202,6 +209,8 @@ export default function App() {
         if (item.detallesPapas?.sin?.length > 0) {
           mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(', ')}\n`;
         }
+        if (item.cargosAparte?.cargoPapas > 0)
+          mensaje += `    - Queso, catsup y salsa aparte (+$${item.cargosAparte.cargoPapas})\n`;
       }
       if (item.extras && item.extras.length > 0)
         mensaje += `  > Extras: ${item.extras.map((e) => e.nombre).join(", ")}\n`;
@@ -410,6 +419,13 @@ export default function App() {
                             </p>
                           )}
 
+                          {item.salsasAparte && (
+                            <p className="text-orange-600">
+                              <span className="font-bold">Servicio:</span>{" "}
+                              Salsas aparte (+${item.cargosAparte.cargoSalsas})
+                            </p>
+                          )}
+
                           {item.combo && !item.combo.includes("Solo") && (
                             <p>
                               <span className="font-bold">Combo:</span>{" "}
@@ -437,6 +453,9 @@ export default function App() {
                               {/* EL CAMBIO ESTÁ AQUÍ: Protegemos con ?. */}
                               {item.detallesPapas?.sin?.length > 0 && (
                                 <p className="text-red-500"><span className="font-bold">Papas sin:</span> {item.detallesPapas.sin.join(', ')}</p>
+                              )}
+                              {item.cargosAparte?.cargoPapas > 0 && (
+                                <p className="text-orange-600"><span className="font-bold">Servicio:</span> Queso, catsup y salsa aparte (+${item.cargosAparte.cargoPapas})</p>
                               )}
                             </div>
                           )}
@@ -651,6 +670,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [proteina, setProteina] = useState(proteinaInicial);
 
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
+  const [salsasAparte, setSalsasAparte] = useState(false);
   const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
   const [saborFrappe, setSaborFrappe] = useState(
     saboresFrappes ? saboresFrappes[0] : "",
@@ -672,11 +692,17 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
     (sum, extra) => sum + extra.precio,
     0,
   );
+  const cargosAparte = calcularCargosAparte({
+    salsasSeleccionadas,
+    salsasAparte,
+    removiblesPapasSeleccionados,
+  });
 
   const precioUnitario =
     varianteActual.precioBase +
     (comboActual ? comboActual.precioExtra : 0) +
-    totalExtras;
+    totalExtras +
+    cargosAparte.total;
   const totalFinal = precioUnitario * cantidadItem;
 
   const handleAgregar = () => {
@@ -698,6 +724,8 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
       combo: comboActual ? comboActual.nombre : null,
       opcionObligatoria: producto.opcionObligatoria ? opcionObligatoria : null,
       salsas: salsasSeleccionadas,
+      salsasAparte,
+      cargosAparte,
       modoMezclaSalsa: producto.maxSalsas === 2 ? modoMezclaSalsa : null,
       saborSoda: comboActual && comboActual.incluyeSoda ? saborSoda : null,
       saborFrappe: producto.esFrappe ? saborFrappe : null,
@@ -950,6 +978,17 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                   );
                 })}
               </div>
+              <label className={`mt-4 flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${salsasAparte ? "border-orange-500 bg-orange-50" : "border-gray-200 bg-white"}`}>
+                <input
+                  type="checkbox"
+                  checked={salsasAparte}
+                  onChange={(e) => setSalsasAparte(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 accent-orange-600"
+                />
+                <span className="text-xs font-bold text-gray-800">
+                  Servir salsas aparte (+${PRECIO_SALSA_APARTE} por cada salsa)
+                </span>
+              </label>
               {salsasSeleccionadas.length === 2 && (
                 <div className="mt-4 p-3 bg-orange-100/50 rounded-xl border border-orange-200 animate-fade-in">
                   <p className="text-[10px] font-black text-orange-900 uppercase mb-2 tracking-tighter">
@@ -1119,6 +1158,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                     />
                     <span className="text-xs font-medium text-gray-700 leading-tight">
                       {item}
+                      {item === "Todo Aparte" && ` (+$${PRECIO_ADEREZOS_PAPAS_APARTE} por queso, catsup y salsa)`}
                     </span>
                   </label>
                 ))}
