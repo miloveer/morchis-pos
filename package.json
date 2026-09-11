@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clientes": "vite",
+    "dev:operacion": "vite --config apps/operacion/vite.config.js",
     "build": "vite build",
+    "build:clientes": "vite build",
+    "build:operacion": "vite build --config apps/operacion/vite.config.js",
+    "build:all": "npm run build:clientes && npm run build:operacion",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,3 +1,30 @@
+# MORCHIS
+
+El repositorio contiene dos compilaciones independientes:
+
+- `npm run dev:clientes` / `npm run build:clientes`: menú público. No incluye código del sistema interno.
+- `npm run dev:operacion` / `npm run build:operacion`: POS y back office con autenticación.
+
+## Perfiles operativos
+
+Cada integrante inicia sesión con Firebase Authentication. Su documento `usuarios/{uid}` debe contener:
+
+```json
+{
+  "nombre": "Socio principal",
+  "rol": "socio",
+  "activo": true
+}
+```
+
+Los roles válidos son `socio` y `empleada`. Los nombres y las credenciales del personal nunca se guardan en GitHub.
+
+## Despliegue
+
+El menú público utiliza `dist/`. La aplicación operativa utiliza `dist-operacion/` y debe desplegarse en una dirección diferente. Antes de usarla hay que activar Email/Password en Firebase Authentication, crear las cuatro cuentas, crear sus perfiles y publicar `firestore.rules`.
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profile() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function staff() { return signedIn() && profile().activo == true && profile().rol in ['socio', 'empleada']; }
+    function partner() { return signedIn() && profile().activo == true && profile().rol == 'socio'; }
+
+    match /menu/{document=**} {
+      allow read: if true;
+      allow write: if staff();
+    }
+
+    match /usuarios/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || partner());
+      allow write: if partner();
+    }
+
+    match /pedidos/{document=**} { allow read, write: if staff(); }
+    match /cajas/{document=**} { allow read, write: if staff(); }
+    match /inventario/{document=**} { allow read, write: if staff(); }
+    match /costos/{document=**} { allow read, write: if partner(); }
+    match /reportes/{document=**} { allow read: if partner(); allow write: if false; }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

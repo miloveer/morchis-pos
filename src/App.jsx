@@ -14,8 +14,6 @@ import {
 import { calcularCargosAparte } from "./utils/calcularCargosAparte";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
-import AdminPanel from "./AdminPanel";
-import LoginAdmin from "./LoginAdmin";
 
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
@@ -47,11 +45,9 @@ export default function App() {
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
 
-  // Estados de Firebase y Admin
+  // Estado del menú público
   const [menuData, setMenuData] = useState([]);
   const [cargandoMenu, setCargandoMenu] = useState(true);
-  const [modoAdmin, setModoAdmin] = useState(false);
-  const [mostrarLogin, setMostrarLogin] = useState(false);
 
   useEffect(() => {
     // onSnapshot se queda "escuchando" cambios 24/7
@@ -122,7 +118,7 @@ export default function App() {
   const totalPagar = totalProductos + costoEnvioReal;
 
   // ========================================================
-  // CONTROL DE VISTAS (Carga, Login, Panel y App Principal)
+  // CONTROL DE CARGA DEL MENÚ PÚBLICO
   // ========================================================
 
   // 1. Mostrar pantalla de carga
@@ -134,26 +130,6 @@ export default function App() {
           Cargando el menú de Morchis...
         </p>
       </div>
-    );
-  }
-
-  // 2. Mostrar pantalla de Login si se solicitó
-  if (mostrarLogin) {
-    return (
-      <LoginAdmin
-        onLoginExitoso={() => {
-          setMostrarLogin(false);
-          setModoAdmin(true);
-        }}
-        onCancelar={() => setMostrarLogin(false)}
-      />
-    );
-  }
-
-  // 3. Mostrar Panel de Administración si el login fue exitoso
-  if (modoAdmin) {
-    return (
-      <AdminPanel menuData={menuData} cerrarAdmin={() => setModoAdmin(false)} />
     );
   }
 
@@ -634,19 +610,10 @@ export default function App() {
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* BOTÓN SECRETO EN EL FOOTER */}
-      {/* ======================================================== */}
       <footer className="pt-10 pb-6 text-center border-t border-gray-200 mt-10">
-        <p className="text-gray-400 text-xs font-medium mb-4">
+        <p className="text-gray-400 text-xs font-medium">
           © 2026 Morchis. Todos los derechos reservados.
         </p>
-        <button
-          onClick={() => setMostrarLogin(true)}
-          className="text-gray-400 hover:text-gray-600 text-[10px] font-bold tracking-widest uppercase transition-colors"
-        >
-          Acceso Personal
-        </button>
       </footer>
     </div>
   );
