@@ -11,6 +11,11 @@ service cloud.firestore {
       allow write: if staff();
     }
 
+    match /catalogos/{document=**} {
+      allow read: if true;
+      allow write: if staff();
+    }
+
     match /usuarios/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || partner());
       allow write: if partner();

@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import {
           removiblesGlobales,
-          saboresSoda,
-          saboresFrappes,
           sazonadoresPapas,
           removiblesPapas,
-          listaSalsasAlitas,
 } from "./data/menu";
 import {
   PRECIO_ADEREZOS_PAPAS_APARTE,
@@ -14,6 +11,10 @@ import {
 import { calcularCargosAparte } from "./utils/calcularCargosAparte";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
+import {
+  CATALOGOS_PREDETERMINADOS,
+  catalogoDeProducto,
+} from "./config/catalogos";
 
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
@@ -47,6 +48,7 @@ export default function App() {
 
   // Estado del menú público
   const [menuData, setMenuData] = useState([]);
+  const [catalogos, setCatalogos] = useState(CATALOGOS_PREDETERMINADOS);
   const [cargandoMenu, setCargandoMenu] = useState(true);
 
   useEffect(() => {
@@ -61,6 +63,16 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    return onSnapshot(collection(db, "catalogos"), (snapshot) => {
+      const remotos = {};
+      snapshot.docs.forEach((item) => {
+        remotos[item.id] = item.data().opciones || [];
+      });
+      setCatalogos({ ...CATALOGOS_PREDETERMINADOS, ...remotos });
+    });
   }, []);
 
   // Estados del Carrito y Cliente
@@ -286,6 +298,7 @@ export default function App() {
           producto={productoSeleccionado}
           cerrar={() => setProductoSeleccionado(null)}
           agregarAlCarrito={agregarAlCarrito}
+          catalogos={catalogos}
         />
       )}
 
@@ -619,7 +632,7 @@ export default function App() {
   );
 }
 
-function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
+function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito, catalogos }) {
   // Buscamos la primera variante que NO esté agotada para seleccionarla por defecto
   const indiceInicial = Math.max(
     0,
@@ -628,9 +641,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const [varianteIndex, setVarianteIndex] = useState(indiceInicial);
 
   const [comboIndex, setComboIndex] = useState(0);
-  const [opcionObligatoria, setOpcionObligatoria] = useState(
-    producto.opcionObligatoria ? producto.opcionObligatoria.opciones[0] : "",
-  );
+  const [opcionObligatoria, setOpcionObligatoria] = useState("");
 
   const proteinaInicial =
     producto.opcionProteina?.find((p) => !p.agotada)?.nombre || "";
@@ -638,10 +649,8 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
 
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
   const [salsasAparte, setSalsasAparte] = useState(false);
-  const [saborSoda, setSaborSoda] = useState(saboresSoda[0]);
-  const [saborFrappe, setSaborFrappe] = useState(
-    saboresFrappes ? saboresFrappes[0] : "",
-  );
+  const [saborSoda, setSaborSoda] = useState("");
+  const [saborFrappe, setSaborFrappe] = useState("");
   const [sazonadorPapas, setSazonadorPapas] = useState(sazonadoresPapas[0]);
   const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] =
     useState([]);
@@ -655,6 +664,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
   const varianteActual =
     producto.variantes[varianteIndex] || producto.variantes[0];
   const comboActual = producto.combos ? producto.combos[comboIndex] : null;
+  const opcionesObligatorias = catalogoDeProducto(producto, catalogos);
   const totalExtras = extrasSeleccionados.reduce(
     (sum, extra) => sum + extra.precio,
     0,
@@ -676,6 +686,12 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
     if (varianteActual.agotada) return alert("Esta variante está agotada.");
     if (producto.maxSalsas && salsasSeleccionadas.length === 0)
       return alert("Selecciona al menos una salsa.");
+    if (producto.opcionObligatoria && !opcionObligatoria)
+      return alert(`Selecciona ${producto.opcionObligatoria.titulo.toLowerCase()}.`);
+    if (comboActual?.incluyeSoda && !saborSoda)
+      return alert("Selecciona el sabor de la soda del combo.");
+    if (producto.esFrappe && !saborFrappe)
+      return alert("Selecciona el sabor de tu frappe.");
     if (varianteActual.opcionesQueso && !quesoVariante)
       return alert("Selecciona una opción de queso.");
     const requiereProteina =
@@ -847,7 +863,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                 Sabor de Frappe <span className="text-pink-500">*</span>
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {saboresFrappes.map((sabor) => (
+                {catalogos.frappes.map((sabor) => (
                   <button
                     key={sabor}
                     onClick={() => setSaborFrappe(sabor)}
@@ -868,7 +884,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                 <span className="text-orange-500">*</span>
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                {producto.opcionObligatoria.opciones.map((opt) => (
+                {opcionesObligatorias.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => setOpcionObligatoria(opt)}
@@ -921,7 +937,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                 Tus Salsas <span className="text-orange-500">*</span>
               </h3>
               <div className="grid grid-cols-2 gap-2 mt-4">
-                {listaSalsasAlitas.map((salsa) => {
+                {catalogos.salsas_alitas.map((salsa) => {
                   const isChecked = salsasSeleccionadas.includes(salsa);
                   const isDisabled =
                     !isChecked &&
@@ -1076,7 +1092,7 @@ function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito }) {
                 Sabor de Soda
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                {saboresSoda.map((sabor) => (
+                {catalogos.sodas.map((sabor) => (
                   <button
                     key={sabor}
                     onClick={() => setSaborSoda(sabor)}
