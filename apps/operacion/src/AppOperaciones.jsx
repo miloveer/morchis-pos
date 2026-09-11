@@ -4,6 +4,7 @@ import { collection, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../../../src/firebase";
 import AdminPanel from "../../../src/AdminPanel";
 import LoginOperaciones from "./LoginOperaciones";
+import { CATALOGOS_PREDETERMINADOS } from "../../../src/config/catalogos";
 
 const MODULOS = [
   { id: "pos", nombre: "Punto de venta", descripcion: "Pedidos y cobros", roles: ["socio", "empleada"] },
@@ -43,6 +44,7 @@ export default function AppOperaciones() {
   const [usuario, setUsuario] = useState(undefined);
   const [perfil, setPerfil] = useState(null);
   const [menuData, setMenuData] = useState([]);
+  const [catalogos, setCatalogos] = useState(CATALOGOS_PREDETERMINADOS);
   const [vista, setVista] = useState("inicio");
   const [errorAcceso, setErrorAcceso] = useState("");
 
@@ -68,13 +70,22 @@ export default function AppOperaciones() {
     });
   }, [perfil]);
 
+  useEffect(() => {
+    if (!perfil) return undefined;
+    return onSnapshot(collection(db, "catalogos"), (snapshot) => {
+      const remotos = {};
+      snapshot.docs.forEach((item) => { remotos[item.id] = item.data().opciones || []; });
+      setCatalogos({ ...CATALOGOS_PREDETERMINADOS, ...remotos });
+    });
+  }, [perfil]);
+
   if (usuario === undefined) return <div className="min-h-screen bg-gray-950 grid place-items-center text-white font-black">Cargando…</div>;
   if (!usuario || !perfil) return <><LoginOperaciones />{errorAcceso && <p className="fixed bottom-4 left-4 right-4 mx-auto max-w-sm rounded-xl bg-red-600 p-3 text-center text-xs font-bold text-white">{errorAcceso}</p>}</>;
 
   const puedeAbrir = (id) => MODULOS.find((modulo) => modulo.id === id)?.roles.includes(perfil.rol);
   const abrir = (id) => puedeAbrir(id) && setVista(id);
 
-  if (vista === "menu") return <AdminPanel menuData={menuData} cerrarAdmin={() => setVista("inicio")} />;
+  if (vista === "menu") return <AdminPanel menuData={menuData} catalogos={catalogos} cerrarAdmin={() => setVista("inicio")} />;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 pb-10">

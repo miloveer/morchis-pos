@@ -1,7 +1,8 @@
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import CatalogosPanel from "./components/admin/CatalogosPanel";
 
-export default function AdminPanel({ menuData, cerrarAdmin }) {
+export default function AdminPanel({ menuData, catalogos, cerrarAdmin }) {
   
   const toggleEstado = async (categoriaId, campo, valorActual) => {
     try {
@@ -34,6 +35,8 @@ export default function AdminPanel({ menuData, cerrarAdmin }) {
           Salir
         </button>
       </header>
+
+      <CatalogosPanel catalogos={catalogos} />
 
       <div className="space-y-6">
         {menuData.map(item => (
