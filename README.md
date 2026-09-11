@@ -11,13 +11,13 @@ Cada integrante inicia sesión con Firebase Authentication. Su documento `usuari
 
 ```json
 {
-  "nombre": "Emilio",
+  "nombre": "Socio principal",
   "rol": "socio",
   "activo": true
 }
 ```
 
-Los roles válidos son `socio` para Emilio y Natasha, y `empleada` para Dulce y Valeria. Las credenciales nunca se guardan en GitHub.
+Los roles válidos son `socio` y `empleada`. Los nombres y las credenciales del personal nunca se guardan en GitHub.
 
 ## Despliegue
 
