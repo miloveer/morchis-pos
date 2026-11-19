@@ -92,7 +92,7 @@ export const menuData = [
     nombre: "Burgers",
     agotado: false,
     icono: "🍔",
-    imagen: "/img/burger.png",
+    imagen: "/img/burger.webp",
     usaRemoviblesGlobales: true,
     opcionProteina: [
       { nombre: "Carne de Res", agotada: true },
@@ -175,7 +175,7 @@ export const menuData = [
     nombre: "Jochos",
     agotado: false,
     icono: "🌭",
-    imagen: "/img/jocho.png",
+    imagen: "/img/jocho.webp",
     usaRemoviblesGlobales: true,
     variantes: [
       { id: "j1", nombre: "Sencillo", precioBase: 40 },
@@ -247,7 +247,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🍗",
-    imagen: "/img/alitas.png",
+    imagen: "/img/alitas.webp",
     usaRemoviblesGlobales: false,
     maxSalsas: 3,
     variantes: [
@@ -276,7 +276,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🔥",
-    imagen: "/img/boneless.png",
+    imagen: "/img/boneless.webp",
     usaRemoviblesGlobales: false,
     maxSalsas: 3,
     variantes: [
@@ -304,7 +304,7 @@ export const menuData = [
     nombre: "Papas Francesa",
     agotado: false,
     icono: "🍟",
-    imagen: "/img/papasfrancesa.png",
+    imagen: "/img/papasfrancesa.webp",
     usaRemoviblesGlobales: false,
     esProductoPapas: true,
     variantes: [
@@ -332,7 +332,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🌪️",
-    imagen: "/img/papaslokas.png",
+    imagen: "/img/papaslokas.webp",
     usaRemoviblesGlobales: false,
     removiblesEspecificos: [
       "Con Todo",
@@ -352,7 +352,7 @@ export const menuData = [
     nombre: "Burritos",
     agotado: true,
     icono: "🌯",
-    imagen: "/img/burrito.png ",
+    imagen: "/img/burrito.webp ",
     usaRemoviblesGlobales: true,
     variantes: [
       { id: "bu1", nombre: "Pollo", precioBase: 60 },
@@ -382,7 +382,7 @@ export const menuData = [
     nombre: "Alambres",
     agotado: true,
     icono: "🍳",
-    imagen: "/img/alambre.png",
+    imagen: "/img/alambre.webp",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "al1", nombre: "Pollo", precioBase: 100 },
@@ -402,7 +402,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🥞",
-    imagen: "/img/hotcakes.png",
+    imagen: "/img/hotcakes.webp",
     usaRemoviblesGlobales: false,
     variantes: [{ id: "hc1", nombre: "Orden Clásica", precioBase: 60 }],
     opcionObligatoria: {
@@ -424,7 +424,7 @@ export const menuData = [
     nombre: "Soda Italiana",
     agotado: false,
 
-    imagen: "/img/sodaitaliana.png",
+    imagen: "/img/sodaitaliana.webp",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "ch1", nombre: "Chica", precioBase: 40 },
@@ -440,7 +440,7 @@ export const menuData = [
     agotado: false,
 
     icono: "☕",
-    imagen: "/img/frappe.png",
+    imagen: "/img/frappe.webp",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "fr1", nombre: "Chico", precioBase: 50 },
@@ -456,7 +456,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🥭",
-    imagen: "/img/chamoyada.png",
+    imagen: "/img/chamoyada.webp",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "ch1", nombre: "Chica", precioBase: 55 },
@@ -472,7 +472,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🥤",
-    imagen: "/img/smoothies.png ",
+    imagen: "/img/smoothies.webp ",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "sm1", nombre: "Chico", precioBase: 45 },
@@ -488,7 +488,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🥫",
-    imagen: "/img/refresco.png",
+    imagen: "/img/refresco.webp",
     usaRemoviblesGlobales: false,
     variantes: [{ id: "rs1", nombre: "Lata 355ml", precioBase: 30 }],
     opcionObligatoria: {
@@ -504,7 +504,7 @@ export const menuData = [
     agotado: false,
 
     icono: "🍋",
-    imagen: "/img/refrescopreparado.png",
+    imagen: "/img/refrescopreparado.webp",
     usaRemoviblesGlobales: false,
     variantes: [
       { id: "rp1", nombre: "Chico", precioBase: 40 },
@@ -528,7 +528,7 @@ export const menuData = [
     nombre: "Sandwiches",
     agotado: true,
     icono: "🥪",
-    imagen: "/img/sandwich.png",
+    imagen: "/img/sandwich.webp",
     usaRemoviblesGlobales: true,
     variantes: [
       { id: "sw1", nombre: "Jamón", precioBase: 55 },
@@ -565,7 +565,7 @@ export const menuData = [
     nombre: "Sincronizadas",
     agotado: true,
     icono: "🫓",
-    imagen: "/img/sincronizada.png",
+    imagen: "/img/sincronizada.webp",
     usaRemoviblesGlobales: true,
     variantes: [
       {
