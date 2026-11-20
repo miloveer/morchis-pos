@@ -28,9 +28,10 @@ export const saboresSoda = [
 ];
 export const saboresRefresco = [
   "Coca Cola",
-  "Jarrito de Tamarindo","Jarrito de Piña","Jarrito de Manzana","Jarrito de Tutifruti",
+  "Sangría",
   "Limonada",
   "Naranjada",
+  "Toronjada",
 ];
 export const sazonadoresPapas = [
   "Sal",
