@@ -1,9 +1,48 @@
-import { doc, updateDoc } from "firebase/firestore";
+import { useState } from "react";
+import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import CatalogosPanel from "./components/admin/CatalogosPanel";
 
 export default function AdminPanel({ menuData, catalogos, cerrarAdmin }) {
-  
+  const [actualizandoImagenes, setActualizandoImagenes] = useState(false);
+
+  const actualizarRutasWebp = async () => {
+    const cambios = menuData
+      .filter((item) => typeof item.imagen === "string")
+      .map((item) => ({
+        id: item.id,
+        imagen: item.imagen.trim().replace(/\.png$/i, ".webp"),
+        rutaActual: item.imagen,
+      }))
+      .filter((item) => item.imagen !== item.rutaActual);
+
+    if (cambios.length === 0) {
+      alert("No hay rutas PNG ni espacios sobrantes por corregir.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `Se actualizarán ${cambios.length} rutas de imágenes en Firebase.\n\n` +
+        "Confirma que los archivos .webp ya existen en public/img antes de continuar.\n\n" +
+        cambios.map((item) => `${item.rutaActual.trim()} → ${item.imagen}`).join("\n"),
+    );
+    if (!confirmar) return;
+
+    setActualizandoImagenes(true);
+    try {
+      const batch = writeBatch(db);
+      cambios.forEach((item) => {
+        batch.update(doc(db, "menu", item.id), { imagen: item.imagen });
+      });
+      await batch.commit();
+      alert(`Listo: se actualizaron ${cambios.length} imágenes de una sola vez.`);
+    } catch (error) {
+      alert(`No se pudieron actualizar las rutas: ${error.message}`);
+    } finally {
+      setActualizandoImagenes(false);
+    }
+  };
+
   const toggleEstado = async (categoriaId, campo, valorActual) => {
     try {
       await updateDoc(doc(db, "menu", categoriaId), { [campo]: !valorActual });
@@ -37,6 +76,20 @@ export default function AdminPanel({ menuData, catalogos, cerrarAdmin }) {
       </header>
 
       <CatalogosPanel catalogos={catalogos} />
+
+      <section className="mb-6 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="font-black text-gray-950">Imágenes del menú</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          Actualiza en bloque las rutas de Firebase: elimina espacios al final y cambia .png por .webp.
+        </p>
+        <button
+          onClick={actualizarRutasWebp}
+          disabled={actualizandoImagenes}
+          className="mt-3 rounded-xl bg-orange-600 px-4 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
+        >
+          {actualizandoImagenes ? "ACTUALIZANDO…" : "ACTUALIZAR TODAS LAS RUTAS WEBP"}
+        </button>
+      </section>
 
       <div className="space-y-6">
         {menuData.map(item => (

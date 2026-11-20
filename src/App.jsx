@@ -192,10 +192,10 @@ export default function App() {
         if (item.saborFrappe) mensaje += `  * Sabor: ${item.saborFrappe}\n`;
       }
       if (item.detallesPapas) {
-        mensaje += `  > Papas: ${item.detallesPapas.sazonador}\n`;
+        mensaje += `  > Sazonador: ${item.detallesPapas.sazonador}\n`;
         // EL CAMBIO ESTÁ AQUÍ: Agregamos ?. para proteger la lectura
         if (item.detallesPapas?.sin?.length > 0) {
-          mensaje += `    - Sin papas: ${item.detallesPapas.sin.join(', ')}\n`;
+          mensaje += `    - ${item.detallesPapas.sin.join(', ')}\n`;
         }
         if (item.cargosAparte?.cargoPapas > 0)
           mensaje += `    - Queso, catsup y salsa aparte (+$${item.cargosAparte.cargoPapas})\n`;
