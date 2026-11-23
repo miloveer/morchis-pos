@@ -113,3 +113,28 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+.morchis-menu {
+  --menu-fondo: #bfbfbf;
+  --menu-acento: #ffd200;
+
+  background-color: var(--menu-fondo);
+  color: #000;
+  color-scheme: light;
+  font-family: "Outfit", system-ui, sans-serif;
+}
+
+.morchis-menu[data-turno="desayunos"] {
+  --menu-fondo: #fbf6f3;
+  --menu-acento: #e85628;
+}
+
+.morchis-encabezado,
+.morchis-pestana-activa {
+  background-color: var(--menu-acento);
+  color: #000;
+}
+
+.morchis-titulo {
+  font-family: "Barlow Condensed", "Outfit", system-ui, sans-serif;
+  letter-spacing: 0.025em;
+}

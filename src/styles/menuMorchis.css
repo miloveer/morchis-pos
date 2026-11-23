@@ -1,0 +1,66 @@
+.morchis-menu {
+  --menu-acento: #ffd200;
+  --heading: "Barlow", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: linear-gradient(#f5f5f7, #bfbfbf);
+  color: #1c1c1e;
+  color-scheme: light;
+  font-family: var(--heading);
+}
+.morchis-menu .morchis-encabezado,
+.morchis-menu .morchis-pestana-activa,
+.morchis-menu .morchis-accion {
+  background: var(--menu-acento);
+  color: #161616;
+}
+.morchis-menu .morchis-accion { border-radius: 18px; }
+.morchis-menu .morchis-accion:hover { filter: brightness(.96); }
+.morchis-menu .morchis-tinte,
+.morchis-menu .morchis-elegido { background: #fff6cb; }
+.morchis-menu .morchis-borde,
+.morchis-menu .morchis-elegido { border-color: #b99727; }
+.morchis-menu .morchis-dorado { color: #624e0b; }
+.morchis-menu .morchis-elegido { color: #1c1c1e; }
+.morchis-menu .morchis-check { accent-color: #7b620f; }
+.morchis-menu .morchis-carrito { background: #f2f2f7; }
+.morchis-menu .morchis-vidrio {
+  background: rgb(255 255 255 / 94%);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.morchis-menu .morchis-area-inferior {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.morchis-menu .morchis-hoja {
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -12px 44px rgb(0 0 0 / 18%);
+}
+.morchis-menu .morchis-logo {
+  margin: 0;
+  min-width: 0;
+}
+.morchis-menu .morchis-logo img {
+  display: block;
+  width: clamp(9rem, 54vw, 19rem);
+  max-width: 100%;
+  height: clamp(4rem, 18vw, 6rem);
+  object-fit: contain;
+  object-position: left center;
+}
+.morchis-menu .morchis-titulo-producto { font-weight: 800; }
+.morchis-menu .morchis-titulo-hoja {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.875rem, 8vw, 3rem);
+  line-height: 1.06;
+  overflow-wrap: anywhere;
+}
+.morchis-menu button:disabled { cursor: not-allowed; }
+.morchis-menu button:focus-visible,
+.morchis-menu input[type="checkbox"]:focus-visible,
+.morchis-menu input[type="radio"]:focus-visible {
+  outline: 2px solid #554000;
+  outline-offset: 2px;
+}
+@media (min-width: 640px) {
+  .morchis-menu .morchis-hoja { border-radius: 28px; }
+}
