@@ -6,11 +6,50 @@ import {
 } from "../data/menu";
 import {
   PRECIO_ADEREZOS_PAPAS_APARTE,
-  PRECIO_SALSA_APARTE,
+  PRECIO_SALSA_APARTE, LIMITE_SALSAS_APARTE, PRECIO_SALSA_EXTRA,
 } from "../config/precios";
-import { catalogoDeProducto } from "../config/catalogos";
+import {
+  ADEREZOS_BANDERILLAS, INGREDIENTES_CLASICAS,
+  calcularSazonador, descripcionSalsa, opcionesProducto, opcionesSalsas, revisarServicioSalsas, tipoSalsa,
+} from "../config/opcionesNoche";
 import { calcularCargosAparte } from "../utils/calcularCargosAparte";
 import { preparacionBloqueada } from "../utils/validarPedido";
+function OpcionMenu({ children, activa, elegir, descripcion, bloqueada = false }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={activa}
+      disabled={bloqueada}
+      onClick={elegir}
+      className={`flex min-h-12 min-w-0 items-start justify-between gap-1.5 rounded-xl border px-3 py-3 text-left text-sm font-bold leading-tight transition-colors disabled:opacity-40 ${activa ? "morchis-elegido" : "border-gray-200 bg-white text-gray-800 hover:border-gray-400"}`}
+    >
+      <span className="min-w-0 [overflow-wrap:anywhere]">
+        {children}
+        {descripcion && <span className="mt-1 block text-xs font-medium leading-snug text-gray-600">{descripcion}</span>}
+      </span>
+      {activa && <span aria-hidden="true" className="morchis-dorado shrink-0">✓</span>}
+    </button>
+  );
+}
+
+function TituloSeleccion({ children, detalle }) {
+  return (
+    <div>
+      <h3 className="text-base font-black text-gray-900">{children}</h3>
+      {detalle && <p className="mt-0.5 text-sm text-gray-600">{detalle}</p>}
+    </div>
+  );
+}
+
+function SeccionMenu({ titulo, detalle, children }) {
+  return (
+    <section className="min-w-0 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-3.5 sm:p-4">
+      <TituloSeleccion detalle={detalle}>{titulo}</TituloSeleccion>
+      {children}
+    </section>
+  );
+}
+const columnas = "grid grid-cols-2 gap-2";
 
 function NotaProducto({ etiqueta, valor, cambiar, ejemplo }) {
   return (
@@ -27,7 +66,6 @@ function NotaProducto({ etiqueta, valor, cambiar, ejemplo }) {
     </label>
   );
 }
-
 export default function ModalPersonalizacion({ producto, cerrar, agregarAlCarrito, catalogos, mostrarAviso, cerrarAviso }) {
   // Buscamos la primera variante que NO esté agotada para seleccionarla por defecto
   const indiceInicial = Math.max(
@@ -43,7 +81,13 @@ export default function ModalPersonalizacion({ producto, cerrar, agregarAlCarrit
 const proteinaInicial = proteinasDisponibles[0]?.nombre || "";
   const [proteina, setProteina] = useState(proteinaInicial);
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState([]);
-  const [salsasAparte, setSalsasAparte] = useState(false);
+  const [sinClasicas, setSinClasicas] = useState([]);
+  const [sazonadorExtra, setSazonadorExtra] = useState("");
+  const [aderezosBanderillas, setAderezosBanderillas] = useState([]);
+  const [pedirSalsasAparte, setPedirSalsasAparte] = useState(false);
+  const [pedirSalsaExtra, setPedirSalsaExtra] = useState(false);
+  const [salsasServidasAparte, setSalsasServidasAparte] = useState([]);
+  const [salsaExtra, setSalsaExtra] = useState("");
   const [saborSoda, setSaborSoda] = useState("");
   const [sazonadorPapas, setSazonadorPapas] = useState("");
   const [removiblesPapasSeleccionados, setRemoviblesPapasSeleccionados] =
@@ -58,21 +102,19 @@ const proteinaInicial = proteinasDisponibles[0]?.nombre || "";
   const [quesoVariante, setQuesoVariante] = useState("");
   const varianteActual =
     producto.variantes[varianteIndex] || producto.variantes[0];
-  const comboActual = producto.combos ? producto.combos[comboIndex] : null;
- const esFrappe =
-  Boolean(producto.esFrappe) ||
-  /frapp[eé]/i.test(`${producto.id ?? ""} ${producto.nombre ?? ""}`);
-const opcionesObligatorias = esFrappe
-  ? catalogos.frappes ?? []
-  : catalogoDeProducto(producto, catalogos);
-const opcionRequerida = esFrappe
-  ? { titulo: "Sabor del frappe" }
-  : producto.opcionObligatoria ||
-    (opcionesObligatorias.length > 0 ? { titulo: "Sabor" } : null);
+  const comboActual = Array.isArray(producto.combos) ? producto.combos[comboIndex] : null;
+  const llevaPapas = producto.esProductoPapas || comboActual?.incluyePapas;
+  const opcionRequerida = opcionesProducto(producto, varianteActual, catalogos);
+  const opcionesObligatorias = opcionRequerida?.opciones ?? [];
+  const salsa = opcionesSalsas(producto, varianteActual, catalogos);
+  const tieneClasicas = salsasSeleccionadas.some((nombre) => tipoSalsa(nombre) === "clasicas");
+  const precioSazonador = salsasSeleccionadas.length ? salsa.precioSazonadorConSalsa : 0;
+  const cargoSazonador = calcularSazonador(salsa, sazonadorExtra, salsasSeleccionadas);
+  const salsasEnPlatillo = salsasSeleccionadas.filter((nombre) => !salsasServidasAparte.includes(nombre));
   const cargosAparte = calcularCargosAparte({
-    salsasSeleccionadas,
-    salsasAparte,
-    removiblesPapasSeleccionados,
+    salsasServidasAparte,
+    salsaExtra,
+    removiblesPapasSeleccionados: llevaPapas ? removiblesPapasSeleccionados : [],
   });
   const totalExtras = extrasSeleccionados.reduce(
     (total, extra) => total + extra.precio,
@@ -82,13 +124,12 @@ const opcionRequerida = esFrappe
     varianteActual.precioBase +
     (comboActual ? comboActual.precioExtra : 0) +
     totalExtras +
-    cargosAparte.total;
+    cargosAparte.total + cargoSazonador;
   const totalFinal = precioUnitario * cantidadItem;
   const handleAgregar = () => {
     const requierePreparacion = Boolean(
       producto.usaRemoviblesGlobales || producto.removiblesEspecificos?.length,
     );
-    const llevaPapas = producto.esProductoPapas || comboActual?.incluyePapas;
     if (requierePreparacion && removibles.length === 0) {
       return mostrarAviso("Elige cómo quieres preparar tu producto.");
     }
@@ -96,15 +137,19 @@ const opcionRequerida = esFrappe
       return mostrarAviso("Elige cómo quieres preparar tus papas.");
     }
     if (varianteActual.agotada) return mostrarAviso("Esta variante está agotada.");
-    if (producto.maxSalsas && salsasSeleccionadas.length === 0)
+    if (salsa.obligatoria && !salsasSeleccionadas.length)
       return mostrarAviso("Selecciona al menos una salsa.");
+    if (salsasSeleccionadas.some((nombre) => !salsa.opciones.includes(nombre)))
+      return mostrarAviso("Elige una salsa disponible.");
+    const errorServicio = revisarServicioSalsas(salsa, {
+      salsas: salsasSeleccionadas, salsasServidasAparte, salsaExtra, pedirSalsasAparte, pedirSalsaExtra,
+    });
+    if (errorServicio) return mostrarAviso(errorServicio);
     if (opcionRequerida && !opcionesObligatorias.includes(opcionObligatoria)) {
       return mostrarAviso(
         opcionesObligatorias.length === 0
           ? "Por el momento no hay opciones disponibles."
-          : esFrappe
-            ? "Elige un sabor para tu frappé antes de agregarlo."
-            : `Elige una opción en «${opcionRequerida.titulo}» antes de agregar.`,
+          : `Elige una opción en «${opcionRequerida.titulo}» antes de agregar.`,
       );
     }
     if (comboActual?.incluyeSoda && !catalogos.sodas.includes(saborSoda)) {
@@ -117,6 +162,11 @@ const opcionRequerida = esFrappe
       !varianteActual.nombre.toLowerCase().includes("chicken");
     const itemParaCarrito = {
       productoId: producto.id,
+      varianteId: varianteActual.id,
+      sinClasicas: tieneClasicas ? sinClasicas : [],
+      sazonadorExtra,
+      aderezosBanderillas,
+      cargoSazonador,
       nombreProducto: producto.nombre,
       variante: varianteActual.opcionesQueso
         ? `${varianteActual.nombre} (${quesoVariante})`
@@ -125,11 +175,14 @@ const opcionRequerida = esFrappe
       mostrarCarneEnMensaje: Boolean(requiereProteina && mostrarProteina),
       combo: comboActual ? comboActual.nombre : null,
       opcionObligatoria: opcionRequerida ? opcionObligatoria : null,
-tituloOpcion: opcionRequerida?.titulo ?? null,
+      tituloOpcion: opcionRequerida?.titulo ?? null,
       salsas: salsasSeleccionadas,
-      salsasAparte,
+      pedirSalsasAparte,
+      pedirSalsaExtra,
+      salsasServidasAparte,
+      salsaExtra,
       cargosAparte,
-      modoMezclaSalsa: producto.maxSalsas === 2 ? modoMezclaSalsa : null,
+      modoMezclaSalsa: salsa.permiteAparte && salsasEnPlatillo.length === 2 ? modoMezclaSalsa : null,
       saborSoda: comboActual && comboActual.incluyeSoda ? saborSoda : null,
       papasDeCombo: Boolean(comboActual?.incluyePapas),
       detallesPapas:
@@ -147,19 +200,38 @@ tituloOpcion: opcionRequerida?.titulo ?? null,
     cerrar();
     agregarAlCarrito(itemParaCarrito);
   };
-  const toggleSalsa = (salsa) =>
+  const toggleSalsa = (nombre) => {
+    setSalsasServidasAparte((actual) => actual.filter((salsa) => salsa !== nombre));
+    if (tieneClasicas && (tipoSalsa(nombre) === "clasicas" || salsa.maximo === 1)) setSinClasicas([]);
     setSalsasSeleccionadas((prev) => {
-      if (prev.includes(salsa)) return prev.filter((s) => s !== salsa);
-      if (prev.length >= producto.maxSalsas) return prev;
-      return [...prev, salsa];
+      if (prev.includes(nombre)) return prev.filter((valor) => valor !== nombre);
+      if (salsa.maximo === 1) return [nombre];
+      if (prev.length >= salsa.maximo) return prev;
+      return [...prev, nombre];
     });
+  };
   const toggleArray = (item, setter) =>
     setter((prev) =>
       prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
     );
-  const mostrarProteina =
-  proteinasDisponibles.length > 1 &&
-  !varianteActual.nombre.toLowerCase().includes("chicken");
+  const mostrarProteina = proteinasDisponibles.length > 1 &&
+    !varianteActual.nombre.toLowerCase().includes("chicken");
+  const cambiarVariante = (variante, index) => {
+    const nuevaSalsa = opcionesSalsas(producto, variante, catalogos);
+    if (nuevaSalsa.maximo !== salsa.maximo || nuevaSalsa.chicken !== salsa.chicken) {
+      setSalsasSeleccionadas([]);
+      setSinClasicas([]);
+      setSalsasServidasAparte([]);
+      setSalsaExtra("");
+      setPedirSalsasAparte(false);
+      setPedirSalsaExtra(false);
+    }
+    if (!opcionesProducto(producto, variante, catalogos)?.opciones.includes(opcionObligatoria)) {
+      setOpcionObligatoria("");
+    }
+    setQuesoVariante("");
+    setVarianteIndex(index);
+  };
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-0 sm:p-4 sm:items-center animate-fade-in">
       <div className="bg-white w-full max-w-md h-[92dvh] sm:h-auto sm:max-h-[90vh] morchis-hoja flex flex-col overflow-hidden">
@@ -171,7 +243,7 @@ tituloOpcion: opcionRequerida?.titulo ?? null,
           />
           <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-0"></div>
           <button
-            onClick={cerrar}
+            type="button" aria-label="Cerrar personalización" onClick={cerrar}
             className="absolute top-4 right-4 bg-white/20 backdrop-blur-md text-white hover:bg-white/40 w-10 h-10 rounded-full font-bold shadow-sm transition-colors flex items-center justify-center text-sm z-10"
           >
             ✕
@@ -180,390 +252,241 @@ tituloOpcion: opcionRequerida?.titulo ?? null,
             {producto.nombre}
           </h2>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-7 bg-white">
-          <section>
-            <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-              Elige tu opción <span className="morchis-dorado">*</span>
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {producto.variantes.map((variante, index) => {
-                const estaAgotada = variante.agotada;
-                return (
-                  <label
-                    key={variante.id}
-                    className={`flex flex-col p-3 border rounded-xl transition-all w-full text-left ${estaAgotada ? "opacity-50 grayscale cursor-not-allowed bg-gray-50" : varianteIndex === index ? "border-gray-900 bg-gray-50 shadow-sm cursor-pointer" : "border-gray-200 bg-white hover:border-gray-300 cursor-pointer"}`}
-                  >
-                    <div className="flex items-start gap-2 w-full">
-                      <input
-                        type="radio"
-                        disabled={estaAgotada}
-                        checked={!estaAgotada && varianteIndex === index}
-                        onChange={() => setVarianteIndex(index)}
-                        className="w-4 h-4 mt-0.5 text-gray-900 morchis-check shrink-0"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <span className="font-black text-gray-900 text-sm block leading-tight pr-1">
-                            {variante.nombre}
-                          </span>
-                          {estaAgotada && (
-                            <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">
-                              Agotado
-                            </span>
-                          )}
-                        </div>
-                        {variante.descripcion && (
-                          <span className="text-gray-500 text-[10px] mt-1 mb-1 block leading-tight">
-                            {variante.descripcion}
-                          </span>
-                        )}
-                        <span className="morchis-dorado font-bold text-xs mt-1 block">
-                          ${variante.precioBase}
-                        </span>
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
+        <div className="flex-1 overflow-y-auto space-y-3 bg-white p-3 sm:p-4">
+          <SeccionMenu titulo="Elige tu opción">
+            <div className={columnas}>
+              {producto.variantes.map((variante, index) => (
+                <OpcionMenu key={variante.id} activa={varianteIndex === index && !variante.agotada}
+                  bloqueada={variante.agotada} elegir={() => cambiarVariante(variante, index)}
+                  descripcion={variante.agotada ? "Agotado" : variante.descripcion}>
+                  {variante.nombre} <span className="morchis-dorado block mt-1">${"$" + variante.precioBase}</span>
+                </OpcionMenu>
+              ))}
             </div>
-          </section>
+          </SeccionMenu>
           {mostrarProteina && (
-            <section className="morchis-tinte p-4 rounded-xl border morchis-borde animate-fade-in">
-              <h3 className="font-bold morchis-dorado mb-3 text-xs tracking-wider uppercase">
-                Tipo de Carne <span className="morchis-dorado">*</span>
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {producto.opcionProteina.map((prot) => {
-                  const estaAgotada = prot.agotada;
-                  return (
-                    <button
-                      key={prot.nombre}
-                      disabled={estaAgotada}
-                      onClick={() => setProteina(prot.nombre)}
-                      className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight relative ${estaAgotada ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70" : proteina === prot.nombre ? "morchis-elegido shadow-md" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
-                    >
-                      {prot.nombre}
-                      {estaAgotada && (
-                        <span className="block text-[9px] font-black text-red-500 uppercase mt-1">
-                          Agotada
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-          {varianteActual.opcionesQueso && (
-            <section className="morchis-tinte p-4 rounded-xl border morchis-borde animate-fade-in">
-              <h3 className="font-bold morchis-dorado mb-3 text-xs tracking-wider uppercase">
-                Elige tu Queso <span className="morchis-dorado">*</span>
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {varianteActual.opcionesQueso.map((queso) => (
-                  <button
-                    key={queso}
-                    onClick={() => setQuesoVariante(queso)}
-                    className={`p-3 rounded-xl text-sm font-bold border transition-all text-left leading-tight ${quesoVariante === queso ? "morchis-elegido shadow-md" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
-                  >
-                    {queso}
-                  </button>
+            <SeccionMenu titulo="Carne" detalle="Elige una opción">
+              <div className={columnas}>
+                {proteinasDisponibles.map(({ nombre }) => (
+                  <OpcionMenu key={nombre} activa={proteina === nombre} elegir={() => setProteina(nombre)}>{nombre}</OpcionMenu>
                 ))}
               </div>
-            </section>
+            </SeccionMenu>
           )}
-          {/* NUEVA SECCIÓN DE FRAPPES */}
-          {opcionRequerida && (
-  <section>
-    <h3 className="mb-3 text-sm font-bold">{opcionRequerida.titulo} *</h3>
-    {opcionesObligatorias.length === 0 ? (
-      <p>No hay sabores disponibles por el momento.</p>
-    ) : (
-      <div className="grid grid-cols-2 gap-2">
-        {opcionesObligatorias.map((opcion) => (
-          <button
-            key={opcion}
-            type="button"
-            onClick={() => {
-              setOpcionObligatoria(opcion);
-              cerrarAviso();
-            }}
-            aria-pressed={opcionObligatoria === opcion}
-            className={`rounded-xl border p-3 text-sm font-bold ${
-              opcionObligatoria === opcion
-                ? "morchis-elegido"
-                : "bg-white text-gray-900"
-            }`}
-          >
-            {opcion}
-          </button>
-        ))}
-      </div>
-    )}
-  </section>
-)}
-          {(producto.usaRemoviblesGlobales ||
-            producto.removiblesEspecificos) && (
-            <section className="border-t border-gray-100 pt-6">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-                ¿Cómo lo quieres?
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {(producto.removiblesEspecificos || removiblesGlobales).map(
-                  (item) => {
-                    const isChecked = removibles.includes(item);
-                    return (
-                      <label
-                        key={item}
-                        className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-left ${isChecked ? "border-gray-400 bg-gray-100" : "border-gray-200 bg-white hover:border-gray-300"}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleArray(item, setRemovibles)}
-                          disabled={preparacionBloqueada(item, removibles)}
-                          className="w-4 h-4 shrink-0 rounded text-gray-600 accent-gray-600"
-                        />
-                        <span
-                          className={`text-xs font-bold leading-tight ${isChecked ? "text-gray-500 line-through" : "text-gray-700"}`}
-                        >
-                          {item}
-                        </span>
-                      </label>
-                    );
-                  },
-                )}
+          {varianteActual.opcionesQueso && (
+            <SeccionMenu titulo="Queso" detalle="Elige una opción">
+              <div className={columnas}>
+                {varianteActual.opcionesQueso.map((queso) => (
+                  <OpcionMenu key={queso} activa={quesoVariante === queso} elegir={() => setQuesoVariante(queso)}>{queso}</OpcionMenu>
+                ))}
               </div>
-            </section>
+            </SeccionMenu>
           )}
-          {producto.maxSalsas && (
-            <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-1 text-xs tracking-wider uppercase">
-                Tus Salsas <span className="morchis-dorado">*</span>
-              </h3>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {catalogos.salsas_alitas.map((salsa) => {
-                  const isChecked = salsasSeleccionadas.includes(salsa);
-                  const isDisabled =
-                    !isChecked &&
-                    salsasSeleccionadas.length >= producto.maxSalsas;
+          {opcionRequerida && (
+            <SeccionMenu titulo={opcionRequerida.titulo} detalle="Elige una opción">
+              {opcionesObligatorias.length ? (
+                <div className={columnas}>
+                  {opcionesObligatorias.map((opcion) => (
+                    <OpcionMenu key={opcion} activa={opcionObligatoria === opcion} elegir={() => {
+                      setOpcionObligatoria(opcion);
+                      cerrarAviso();
+                    }}>{opcion}</OpcionMenu>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-gray-600">No hay opciones disponibles por el momento.</p>}
+            </SeccionMenu>
+          )}
+          {(producto.usaRemoviblesGlobales || Boolean(producto.removiblesEspecificos?.length)) && (
+            <SeccionMenu titulo="¿Cómo lo quieres?" detalle="Elige la preparación">
+              <div className={columnas}>
+                {(producto.removiblesEspecificos || removiblesGlobales).map((item) => (
+                  <OpcionMenu key={item} activa={removibles.includes(item)} bloqueada={preparacionBloqueada(item, removibles)}
+                    elegir={() => toggleArray(item, setRemovibles)}>{item}</OpcionMenu>
+                ))}
+              </div>
+            </SeccionMenu>
+          )}
+          {salsa.maximo > 0 && (
+            <SeccionMenu titulo="Salsas"
+              detalle={salsasSeleccionadas.join(", ") || (salsa.obligatoria ? `Elige hasta ${salsa.maximo}` : "Opcional")}>
+              <div className={columnas}>
+                {!salsa.obligatoria && (
+                  <div className="col-span-2 grid">
+                    <OpcionMenu activa={!salsasSeleccionadas.length} elegir={() => {
+                      setSalsasSeleccionadas([]);
+                      setSinClasicas([]);
+                      setSalsasServidasAparte([]);
+                    }}>Sin salsa</OpcionMenu>
+                  </div>
+                )}
+                {salsa.opciones.map((nombre) => {
+                  const descripcion = descripcionSalsa(nombre);
                   return (
-                    <label
-                      key={salsa}
-                      className={`flex items-center gap-2 p-3 bg-white rounded-lg border transition-all text-left ${isDisabled ? "opacity-50" : "cursor-pointer"} ${isChecked ? "border-gray-900" : "border-gray-200"}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSalsa(salsa)}
-                        disabled={isDisabled}
-                        className="w-4 h-4 shrink-0 rounded text-gray-900 morchis-check"
-                      />
-                      <span className="text-xs font-bold text-gray-800 leading-tight">
-                        {salsa}
-                      </span>
-                    </label>
+                    <OpcionMenu key={nombre} activa={salsasSeleccionadas.includes(nombre)}
+                      bloqueada={!salsasSeleccionadas.includes(nombre) && salsa.maximo > 1 && salsasSeleccionadas.length >= salsa.maximo}
+                      descripcion={descripcion} elegir={() => toggleSalsa(nombre)}>{nombre}</OpcionMenu>
                   );
                 })}
               </div>
-              <label className={`mt-4 flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${salsasAparte ? "morchis-borde morchis-tinte" : "border-gray-200 bg-white"}`}>
-                <input
-                  type="checkbox"
-                  checked={salsasAparte}
-                  onChange={(e) => setSalsasAparte(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 morchis-check"
-                />
-                <span className="text-xs font-bold text-gray-800">
-                  Servir salsas aparte (+${PRECIO_SALSA_APARTE} por cada salsa)
-                </span>
-              </label>
-              {salsasSeleccionadas.length === 2 && (
-                <div className="mt-4 p-3 morchis-tinte rounded-xl border morchis-borde animate-fade-in">
-                  <p className="text-[10px] font-black morchis-dorado uppercase mb-2 tracking-tighter">
-                    ¿Cómo servimos tus 2 salsas?
-                  </p>
-                  <div className="flex gap-2">
-                    {["mitad y mitad", "combinadas"].map((modo) => (
-                      <button
-                        key={modo}
-                        onClick={() => setModoMezclaSalsa(modo)}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all border ${
-                          modoMezclaSalsa === modo
-                            ? "morchis-elegido shadow-sm"
-                            : "bg-white morchis-borde morchis-dorado"
-                        }`}
-                      >
-                        {modo}
-                      </button>
+              {tieneClasicas && (
+                <fieldset className="min-w-0 rounded-xl border border-gray-200 p-3">
+                  <legend className="px-1 text-sm font-bold">Preparación de Clásicas</legend>
+                  <div className={columnas}>
+                    <OpcionMenu activa={!sinClasicas.length} elegir={() => setSinClasicas([])}>Con todo</OpcionMenu>
+                    {INGREDIENTES_CLASICAS.map((ingrediente) => (
+                      <OpcionMenu key={ingrediente} activa={sinClasicas.includes(ingrediente)} elegir={() => toggleArray(ingrediente, setSinClasicas)}>
+                        Sin {ingrediente.toLowerCase()}
+                      </OpcionMenu>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+              {salsa.permiteAparte && salsasEnPlatillo.length === 2 && (
+                <div>
+                  <h4 className="mb-2 text-sm font-bold">¿Cómo servimos tus dos salsas?</h4>
+                  <div className={columnas}>
+                    {[["mitad y mitad", "Mitad y mitad"], ["combinadas", "Combinadas"]].map(([modo, nombre]) => (
+                      <OpcionMenu key={modo} activa={modoMezclaSalsa === modo} elegir={() => setModoMezclaSalsa(modo)}>{nombre}</OpcionMenu>
                     ))}
                   </div>
                 </div>
               )}
-            </section>
+            </SeccionMenu>
           )}
-          {producto.extras && producto.extras.length > 0 && (
-            <section>
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-                Extras
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {producto.extras.map((extra) => {
-                  const estaAgotado = extra.agotada;
-                  const isChecked = extrasSeleccionados.some(
-                    (e) => e.id === extra.id,
-                  );
-                  return (
-                    <label
-                      key={extra.id}
-                      className={`flex flex-col p-3 border rounded-xl transition-all text-left ${estaAgotado ? "opacity-50 grayscale cursor-not-allowed bg-gray-50" : isChecked ? "border-gray-900 bg-gray-50 shadow-sm cursor-pointer" : "border-gray-200 hover:border-gray-300 cursor-pointer"}`}
-                    >
-                      <div className="flex items-start gap-2 w-full">
-                        <input
-                          type="checkbox"
-                          disabled={estaAgotado}
-                          checked={!estaAgotado && isChecked}
-                          onChange={() =>
-                            toggleArray(extra, setExtrasSeleccionados)
-                          }
-                          className="w-4 h-4 mt-0.5 shrink-0 rounded text-gray-900 morchis-check"
-                        />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <span className="font-bold text-gray-900 text-sm block leading-tight pr-1">
-                              {extra.nombre}
-                            </span>
-                            {estaAgotado && (
-                              <span className="text-[8px] font-black text-red-500 uppercase bg-red-50 px-1 py-0.5 rounded">
-                                Agotado
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">
-                            +${extra.precio}
-                          </span>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
+          {salsa.permiteAparte && salsa.opciones.length > 0 && (
+            <SeccionMenu titulo="Salsas aparte" detalle={`Hasta ${LIMITE_SALSAS_APARTE} a $${PRECIO_SALSA_APARTE} cada una`}>
+              <div className="grid">
+                <OpcionMenu activa={pedirSalsasAparte} elegir={() => {
+                  setPedirSalsasAparte(!pedirSalsasAparte);
+                  setSalsasServidasAparte([]);
+                  cerrarAviso?.();
+                }}>Servir salsas aparte</OpcionMenu>
               </div>
-            </section>
+              {pedirSalsasAparte && (salsasSeleccionadas.length ? (
+                <>
+                  <div className={columnas}>
+                    {salsasSeleccionadas.map((nombre) => (
+                      <OpcionMenu key={nombre} activa={salsasServidasAparte.includes(nombre)}
+                        bloqueada={!salsasServidasAparte.includes(nombre) && salsasServidasAparte.length >= LIMITE_SALSAS_APARTE}
+                        elegir={() => {
+                          toggleArray(nombre, setSalsasServidasAparte);
+                          cerrarAviso?.();
+                        }}>{nombre}</OpcionMenu>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600">Marca al menos una. Las demás van en el platillo.</p>
+                </>
+              ) : <p className="text-sm text-gray-600">Elige un sabor en Salsas y luego márcalo aquí para servirlo aparte.</p>)}
+            </SeccionMenu>
           )}
-          {producto.combos && producto.combos.length > 1 && (
-            <section>
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-                Hazlo Combo
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {producto.combos.map((combo, index) => (
-                  <label
-                    key={combo.id}
-                    className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-all text-left ${comboIndex === index ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-300"}`}
-                  >
-                    <div className="flex items-start gap-2 w-full">
-                      <input
-                        type="radio"
-                        checked={comboIndex === index}
-                        onChange={() => setComboIndex(index)}
-                        className="w-4 h-4 mt-0.5 shrink-0 text-gray-900 morchis-check"
-                      />
-                      <div className="flex-1">
-                        <span className="font-bold text-gray-900 text-sm block leading-tight">
-                          {combo.nombre}
-                        </span>
-                        {combo.precioExtra > 0 ? (
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">
-                            +${combo.precioExtra}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 font-medium text-xs mt-1 block">
-                            Incluido
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </label>
+          {salsa.permiteSazonador && (
+            <SeccionMenu titulo="Sazonador" detalle={`${sazonadorExtra || "Opcional"} · ${precioSazonador
+              ? `+$${precioSazonador} por orden con salsa` : "sin costo"}`}>
+              <div className={columnas}>
+                <OpcionMenu activa={!sazonadorExtra} elegir={() => setSazonadorExtra("")}>Sin sazonador</OpcionMenu>
+                {salsa.sazonadores.map((nombre) => (
+                  <OpcionMenu key={nombre} activa={sazonadorExtra === nombre} elegir={() => setSazonadorExtra(nombre)}>{nombre}</OpcionMenu>
                 ))}
               </div>
-            </section>
+            </SeccionMenu>
+          )}
+          {salsa.banderillas && (
+            <SeccionMenu titulo="Aderezos" detalle={aderezosBanderillas.join(", ") || "Opcional"}>
+              <div className={columnas}>
+                {ADEREZOS_BANDERILLAS.map((nombre) => (
+                  <OpcionMenu key={nombre} activa={aderezosBanderillas.includes(nombre)} elegir={() => toggleArray(nombre, setAderezosBanderillas)}>{nombre}</OpcionMenu>
+                ))}
+              </div>
+            </SeccionMenu>
+          )}
+          {producto.extras?.length > 0 && (
+            <SeccionMenu titulo="Extras" detalle={extrasSeleccionados.map(({ nombre }) => nombre).join(", ") || "Opcional"}>
+              <div className={columnas}>
+                {producto.extras.map((extra) => (
+                  <OpcionMenu key={extra.id} activa={extrasSeleccionados.some((e) => e.id === extra.id)}
+                    bloqueada={extra.agotada} elegir={() => toggleArray(extra, setExtrasSeleccionados)}
+                    descripcion={extra.agotada ? "Agotado" : `+$${extra.precio}`}>{extra.nombre}</OpcionMenu>
+                ))}
+              </div>
+            </SeccionMenu>
+          )}
+          {producto.combos?.length > 1 && (
+            <SeccionMenu titulo="Arma tu combo" detalle={comboActual?.nombre ?? "Elige una opción"}>
+              <div className={columnas}>
+                {producto.combos.map((combo, index) => (
+                  <OpcionMenu key={combo.id} activa={comboIndex === index} elegir={() => setComboIndex(index)}
+                    descripcion={combo.precioExtra > 0 ? `+$${combo.precioExtra}` : "Incluido"}>{combo.nombre}</OpcionMenu>
+                ))}
+              </div>
+            </SeccionMenu>
+          )}
+          {comboActual?.incluyeSoda && (
+            <SeccionMenu titulo="Sabor de la soda" detalle="Elige una opción">
+              <div className={columnas}>
+                {catalogos.sodas.map((sabor) => (
+                  <OpcionMenu key={sabor} activa={saborSoda === sabor} elegir={() => setSaborSoda(sabor)}>{sabor}</OpcionMenu>
+                ))}
+              </div>
+              <SeccionMenu titulo="Indicaciones para la soda" detalle={notaSoda.trim() ? "Nota agregada" : "Opcional"}>
+                <NotaProducto etiqueta="Nota de la soda" valor={notaSoda} cambiar={setNotaSoda} ejemplo="Ej. Sin hielo" />
+              </SeccionMenu>
+            </SeccionMenu>
+          )}
+          {(comboActual?.incluyePapas || producto.esProductoPapas) && (
+            <SeccionMenu titulo="Papas" detalle="Elige la preparación y agrega un sazonador si quieres">
+              <div className={columnas}>
+                {removiblesPapas.map((item) => (
+                  <OpcionMenu key={item} activa={removiblesPapasSeleccionados.includes(item)}
+                    bloqueada={preparacionBloqueada(item, removiblesPapasSeleccionados)}
+                    elegir={() => toggleArray(item, setRemoviblesPapasSeleccionados)}
+                    descripcion={item === "Todo Aparte" ? `+$${PRECIO_ADEREZOS_PAPAS_APARTE} por queso, catsup y salsa` : undefined}>{item}</OpcionMenu>
+                ))}
+              </div>
+              <SeccionMenu titulo="Sazonador de las papas" detalle={sazonadorPapas || "Opcional"}>
+                <div className={columnas}>
+                <OpcionMenu activa={!sazonadorPapas} elegir={() => setSazonadorPapas("")}>Sin sazonador</OpcionMenu>
+                {sazonadoresPapas.map((nombre) => (
+                  <OpcionMenu key={nombre} activa={sazonadorPapas === nombre} elegir={() => setSazonadorPapas(nombre)}>{nombre}</OpcionMenu>
+                ))}
+              </div>
+              </SeccionMenu>
+              <SeccionMenu titulo="Indicaciones para las papas" detalle={notaPapas.trim() ? "Nota agregada" : "Opcional"}>
+                <NotaProducto etiqueta="Nota de las papas" valor={notaPapas} cambiar={setNotaPapas} ejemplo="Ej. Bien doradas, poca salsa" />
+              </SeccionMenu>
+            </SeccionMenu>
           )}
           {!producto.esProductoPapas && (
-            <NotaProducto etiqueta="Nota del platillo" valor={notas} cambiar={setNotas} ejemplo="Ej. La carne bien dorada" />
+            <SeccionMenu titulo="Indicaciones especiales" detalle={notas.trim() ? "Nota agregada" : "Opcional"}>
+              <NotaProducto etiqueta="Nota del platillo" valor={notas} cambiar={setNotas} ejemplo="Ej. La carne bien dorada" />
+            </SeccionMenu>
           )}
-          {comboActual && comboActual.incluyeSoda && (
-            <section className="bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-                Sabor de Soda
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {catalogos.sodas.map((sabor) => (
-                  <button
-                    key={sabor}
-                    onClick={() => setSaborSoda(sabor)}
-                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${saborSoda === sabor ? "morchis-elegido" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
-                  >
-                    {sabor}
-                  </button>
-                ))}
+          {salsa.permiteAparte && salsa.opciones.length > 0 && (
+            <SeccionMenu titulo="Salsa extra" detalle={`Opcional · +$${PRECIO_SALSA_EXTRA} por orden`}>
+              <div className="grid">
+                <OpcionMenu activa={pedirSalsaExtra} elegir={() => {
+                  setPedirSalsaExtra(!pedirSalsaExtra);
+                  setSalsaExtra("");
+                  cerrarAviso?.();
+                }}>Agregar salsa extra</OpcionMenu>
               </div>
-              <div className="mt-3">
-                <NotaProducto etiqueta="Nota de la soda" valor={notaSoda} cambiar={setNotaSoda} ejemplo="Ej. Sin hielo" />
-              </div>
-            </section>
-          )}
-          {((comboActual && comboActual.incluyePapas) ||
-            producto.esProductoPapas) && (
-            <section className="bg-gray-50 p-4 rounded-xl border border-gray-100 animate-fade-in">
-              <h3 className="font-bold text-gray-900 mb-3 text-xs tracking-wider uppercase">
-                Preparación Papas
-              </h3>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {sazonadoresPapas.map((saz) => (
-                  <button
-                    key={saz}
-                    aria-pressed={sazonadorPapas === saz}
-                    onClick={() => setSazonadorPapas((actual) => actual === saz ? "" : saz)}
-                    className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-left leading-tight ${sazonadorPapas === saz ? "morchis-elegido" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"}`}
-                  >
-                    {saz}
-                  </button>
-                ))}
-              </div>
-              <h4 className="font-bold text-gray-900 mb-2 text-[10px] tracking-wider uppercase">
-                ¿Cómo quieres tus papas? *
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {removiblesPapas.map((item) => (
-                  <label
-                    key={item}
-                    className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer text-left"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={removiblesPapasSeleccionados.includes(item)}
-                      disabled={preparacionBloqueada(item, removiblesPapasSeleccionados)}
-                      onChange={() =>
-                        toggleArray(item, setRemoviblesPapasSeleccionados)
-                      }
-                      className="w-4 h-4 shrink-0 rounded text-gray-900 morchis-check"
-                    />
-                    <span className="text-xs font-medium text-gray-700 leading-tight">
-                      {item}
-                      {item === "Todo Aparte" && ` (+$${PRECIO_ADEREZOS_PAPAS_APARTE} por queso, catsup y salsa)`}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="mt-3">
-                <NotaProducto etiqueta="Nota de las papas" valor={notaPapas} cambiar={setNotaPapas} ejemplo="Ej. Bien doradas, poca salsa" />
-              </div>
-            </section>
+              {pedirSalsaExtra && (
+                <div className={columnas}>
+                  {salsa.opciones.map((nombre) => (
+                    <OpcionMenu key={nombre} activa={salsaExtra === nombre} descripcion={descripcionSalsa(nombre)}
+                      elegir={() => {
+                        setSalsaExtra(nombre);
+                        cerrarAviso?.();
+                      }}>{nombre}</OpcionMenu>
+                  ))}
+                </div>
+              )}
+            </SeccionMenu>
           )}
         </div>
         <div className="p-4 morchis-vidrio morchis-area-inferior border-t border-gray-100 shrink-0 flex gap-3 items-center">
           <div className="flex items-center justify-between bg-gray-100 border border-gray-200 rounded-xl p-1 w-28 sm:w-32 shrink-0 h-14">
             <button
-              onClick={() => setCantidadItem(Math.max(1, cantidadItem - 1))}
+              type="button" aria-label="Quitar una unidad" disabled={cantidadItem === 1} onClick={() => setCantidadItem((actual) => Math.max(1, actual - 1))}
               className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
             >
               -
@@ -572,14 +495,14 @@ tituloOpcion: opcionRequerida?.titulo ?? null,
               {cantidadItem}
             </span>
             <button
-              onClick={() => setCantidadItem(cantidadItem + 1)}
+              type="button" aria-label="Sumar una unidad" onClick={() => setCantidadItem((actual) => actual + 1)}
               className="w-10 h-full flex items-center justify-center rounded-lg bg-white text-gray-900 font-black shadow-sm hover:bg-gray-50 transition-colors active:scale-95"
             >
               +
             </button>
           </div>
           <button
-            onClick={handleAgregar}
+            type="button" disabled={varianteActual.agotada} onClick={handleAgregar}
             className={`flex-1 h-14 px-5 rounded-xl font-bold text-lg transition-all flex justify-between items-center shadow-sm ${varianteActual.agotada ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "morchis-accion active:scale-95"}`}
           >
             <span>{varianteActual.agotada ? "Agotado" : "Agregar"}</span>

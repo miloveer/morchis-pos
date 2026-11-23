@@ -1,3 +1,4 @@
+import { detalleSalsasPedido, listaSalsasAparte } from "../config/opcionesNoche";
 import DatosPago from "./DatosPago";
 import { armarMensajePedido, mostrarCarneEnPedido } from "../utils/mensajePedido";
 
@@ -85,14 +86,16 @@ export default function CarritoPedido({
                       )}
                       {item.opcionObligatoria && (
                         <p>
-                          <span className="font-bold">Elección:</span>{" "}
+                          <span className="font-bold">{item.tituloOpcion || "Elección"}:</span>{" "}
                           {item.opcionObligatoria}
                         </p>
                       )}
                       {item.salsas && item.salsas.length > 0 && (
                         <p>
                           <span className="font-bold">Salsas:</span>{" "}
-                          {item.salsas.join(", ")}
+                          {detalleSalsasPedido(item, { marcarAparte: true })}
+                          {listaSalsasAparte(item).length > 0 && item.cargosAparte?.cargoSalsas > 0 &&
+                            ` · +$${item.cargosAparte.cargoSalsas} por orden`}
                           {item.modoMezclaSalsa && (
                             <span className="italic">
                               {" "}
@@ -101,10 +104,15 @@ export default function CarritoPedido({
                           )}
                         </p>
                       )}
-                      {item.salsasAparte && (
-                        <p className="morchis-dorado">
-                          <span className="font-bold">Servicio:</span>{" "}
-                          Salsas aparte (+${item.cargosAparte.cargoSalsas})
+                      {item.sazonadorExtra && (
+                        <p><span className="font-bold">Sazonador:</span> {item.sazonadorExtra}{item.cargoSazonador ? ` (+$${item.cargoSazonador} por orden)` : ""}</p>
+                      )}
+                      {item.aderezosBanderillas?.length > 0 && (
+                        <p><span className="font-bold">Aderezos:</span> {item.aderezosBanderillas.join(", ")}</p>
+                      )}
+                      {item.salsaExtra && (
+                        <p><span className="font-bold">Salsa extra:</span> {item.salsaExtra} (aparte)
+                          {item.cargosAparte?.cargoSalsaExtra > 0 && ` · +$${item.cargosAparte.cargoSalsaExtra} por orden`}
                         </p>
                       )}
                       {item.combo && !item.combo.includes("Solo") && (

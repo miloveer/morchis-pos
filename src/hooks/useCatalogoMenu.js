@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { CATALOGOS_PREDETERMINADOS } from "../config/catalogos";
+import { aplicarIngredientesMenu } from "../config/ingredientesMenu";
+import { completarMenuNoche } from "../config/menuNoche";
 
 export default function useCatalogoMenu(turnoMenu) {
   const [menuData, setMenuData] = useState([]);
@@ -11,9 +13,9 @@ export default function useCatalogoMenu(turnoMenu) {
     const unsubscribe = onSnapshot(collection(db, "menu"), (snapshot) => {
       const menuDesdeLaNube = [];
       snapshot.forEach((doc) => {
-        menuDesdeLaNube.push({ id: doc.id, ...doc.data() });
+        menuDesdeLaNube.push(aplicarIngredientesMenu({ id: doc.id, ...doc.data() }));
       });
-      setMenuData(menuDesdeLaNube);
+      setMenuData(completarMenuNoche(menuDesdeLaNube));
       setCargandoMenu(false);
     });
     return () => unsubscribe();

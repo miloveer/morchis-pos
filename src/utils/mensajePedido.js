@@ -1,3 +1,5 @@
+import { detalleSalsasPedido, listaSalsasAparte } from "../config/opcionesNoche";
+
 const numeroMX = new Intl.NumberFormat("es-MX", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
@@ -72,10 +74,19 @@ function ficha(item, menuData) {
   if (item.removibles?.length) lineas.push(`- ${item.removibles.join(", ")}`);
   const seleccion = item.opcionObligatoria || item.saborFrappe;
   if (seleccion) lineas.push(`- ${item.tituloOpcion || (item.saborFrappe ? "Sabor" : "Selección")}: ${seleccion}`);
-  if (item.salsas?.length) lineas.push(`- Salsas: ${item.salsas.join(", ")}`);
-  if (item.salsasAparte && item.cargosAparte?.cargoSalsas > 0)
-    lineas.push(`- Salsas aparte: +${formatoPesos(item.cargosAparte.cargoSalsas)} por orden`);
-  if (item.modoMezclaSalsa && item.salsas?.length > 1)
+  if (item.salsas?.length) {
+    const cargo = item.cargosAparte?.cargoSalsas;
+    const extra = listaSalsasAparte(item).length > 0 && cargo > 0 ? ` · +${formatoPesos(cargo)} por orden` : "";
+    lineas.push(`- Salsas: ${detalleSalsasPedido(item, { marcarAparte: true })}${extra}`);
+  }
+  if (item.sazonadorExtra) lineas.push(`- Sazonador: ${item.sazonadorExtra}${item.cargoSazonador ? ` (+${formatoPesos(item.cargoSazonador)} por orden)` : ""}`);
+  if (item.aderezosBanderillas?.length) lineas.push(`- Aderezos: ${item.aderezosBanderillas.join(", ")}`);
+  if (item.salsaExtra) {
+    const extra = item.cargosAparte?.cargoSalsaExtra;
+    lineas.push(`- Salsa extra: ${item.salsaExtra} (aparte)${extra > 0 ? ` · +${formatoPesos(extra)} por orden` : ""}`);
+  }
+  const aparte = listaSalsasAparte(item);
+  if (item.modoMezclaSalsa && item.salsas?.filter((nombre) => !aparte.includes(nombre)).length === 2)
     lineas.push(`- Servir salsas: ${item.modoMezclaSalsa}`);
   if (item.extras?.length) lineas.push(`- Extras: ${item.extras.map((extra) => extra.nombre).join(", ")}`);
   if (!papasSolas) nota(lineas, item.notas);
