@@ -1,19 +1,27 @@
-// Ingredientes que el cliente puede quitar en la app de pedidos.
-const ingredientesBase = ["Frijoles", "Cebolla", "Jitomate", "Lechuga", "Chile"];
+// Ingredientes que el cliente puede pedir que se retiren.
+const aderezos = ["Mayonesa", "Mostaza", "Catsup"];
+const verduras = ["Cebolla caramelizada", "Jitomate", "Lechuga"];
+export const CHILES_A_ELEGIR = ["Jalapeños", "Chipotle", "Sin chile"];
+const productosConChile = new Set(["burritos", "sandwiches", "baguettes", "sincronizadas"]);
 
-const ingredientesPorProducto = new Map([
-  ["burritos", [...ingredientesBase, "Chile morrón"]],
-  ["sandwiches", [...ingredientesBase, "Mayonesa"]],
-  ["sincronizadas", ingredientesBase],
-]);
+export const INGREDIENTES_PAN = ["Frijoles", ...verduras, "Mayonesa"];
+const ingredientesPorProducto = {
+  burgers: ["Cebolla caramelizada", "Jitomate", "Lechuga", "Jalapeños", ...aderezos],
+  jochos: ["Cebolla caramelizada", "Jitomate", "Jalapeños", ...aderezos],
+  burritos: ["Chile morrón", "Cebolla caramelizada", "Frijoles", "Jitomate"],
+  alambres: ["Chile morrón", "Cebolla caramelizada", "Salchicha", "Tocino", "Jamón", "Queso", "Salsa", "Limón"],
+  sandwiches: INGREDIENTES_PAN,
+  baguettes: INGREDIENTES_PAN,
+  sincronizadas: ["Frijoles", ...verduras],
+  papas_lokas: ["Gomitas", "Cacahuates", "Salsas negras", "Salsa picante", "Chamoy", "Miguelito", "Tajín", "Limón"],
+};
 
 export function aplicarIngredientesMenu(producto) {
-  const ingredientes = ingredientesPorProducto.get(producto.id);
-  if (!ingredientes) return producto;
-
+  if (!Object.hasOwn(ingredientesPorProducto, producto.id)) return producto;
   return {
     ...producto,
     usaRemoviblesGlobales: false,
-    removiblesEspecificos: ["Con todo", ...ingredientes.map((ingrediente) => `Sin ${ingrediente.toLowerCase()}`)],
+    ...(productosConChile.has(producto.id) ? { opcionesChile: CHILES_A_ELEGIR } : {}),
+    removiblesEspecificos: ["Con todo", ...ingredientesPorProducto[producto.id].map((ingrediente) => `Sin ${ingrediente.toLowerCase()}`)],
   };
 }

@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import useCatalogoMenu from "./hooks/useCatalogoMenu";
 import CatalogoMenu from "./components/CatalogoMenu";
+import usePreciosMenu from "./hooks/usePreciosMenu";
 import { revisarArticulo } from "./utils/validarPedido";
 import { armarMensajePedido, formatoPesos } from "./utils/mensajePedido";
-import AvisoPedido from "./components/AvisoPedido";
+import AvisoCliente from "./components/AvisoCliente";
+import { claveCarrito, idDeLinea, leerCarrito, persistirCarrito } from "./utils/carritoCliente";
 import ModalPersonalizacion from "./components/ModalPersonalizacion";
+import ModalPan from "./components/ModalPan";
+import { ensamblarMenu } from "./config/disponibilidadMenu";
 import CarritoPedido from "./components/CarritoPedido";
-import { DESAYUNOS_HABILITADOS, TURNOS, turnoAbierto } from "./config/turnos";
-import "./styles/menuMorchis.css";
+import { TURNOS, turnoActivo, turnoDisponible } from "./config/turnos";
+import BarraTurnos from "./components/BarraTurnos";
+import "./styles/clientes.css";
 // ==========================================
 // CONFIGURACIÓN DE NEGOCIO
 // ==========================================
@@ -15,34 +20,107 @@ const TELEFONO_MORCHIS = "5641375355";
 const COSTO_ENVIO_DOMICILIO = 10;
 
 export default function App() {
+  const vistaDesayunosLocal = import.meta.env.DEV &&
+    new URLSearchParams(window.location.search).get("desayunos") === "1";
+  const [turnoElegido, setTurnoElegido] = useState(null);
+  const catalogoActual = useCatalogoMenu();
+  const preciosActuales = usePreciosMenu();
+  const [horario, setHorario] = useState(() => {
+    const reloj = new Date();
+    return { reloj, ultimoTurno: turnoActivo(reloj) ?? "noche" };
+  });
+
+  useEffect(() => {
+    const actualizar = () => {
+      const reloj = new Date();
+      const abierto = turnoActivo(reloj);
+      setHorario((anterior) => ({ reloj, ultimoTurno: abierto ?? anterior.ultimoTurno }));
+    };
+    const intervalo = setInterval(actualizar, 5000);
+    window.addEventListener("focus", actualizar);
+    document.addEventListener("visibilitychange", actualizar);
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener("focus", actualizar);
+      document.removeEventListener("visibilitychange", actualizar);
+    };
+  }, []);
+
+  const turnoMenu = turnoElegido ?? (vistaDesayunosLocal ? "desayunos" : horario.ultimoTurno);
+  function cambiarTurno(id) {
+    setTurnoElegido(id);
+    window.scrollTo(0, 0);
+  }
+  return <MenuClientes key={turnoMenu} turnoMenu={turnoMenu} reloj={horario.reloj} vistaDesayunosLocal={vistaDesayunosLocal}
+    cambiarTurno={cambiarTurno} catalogoActual={catalogoActual} preciosActuales={preciosActuales} />;
+}
+
+function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, catalogoActual, preciosActuales }) {
+  const [panEnEdicion, setPanEnEdicion] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [aviso, setAviso] = useState(null);
+  const hayDialogo = Boolean(productoSeleccionado || mostrarCarrito);
+  useEffect(() => {
+    if (!hayDialogo) return;
+    const origen = document.activeElement;
+    const manejarTecla = (evento) => {
+      const dialogo = document.querySelector("[data-dialogo-cliente]");
+      if (!dialogo) return;
+      if (evento.key === "Escape") {
+        evento.preventDefault();
+        dialogo.querySelector("[data-cerrar-dialogo]")?.click();
+      }
+      if (evento.key === "Tab") {
+        const controles = [...dialogo.querySelectorAll("button:not(:disabled), input:not(:disabled), textarea:not(:disabled), summary, a[href]")]
+          .filter((control) => control.getClientRects().length);
+        if (!controles.length) return;
+        const primero = controles[0], ultimo = controles.at(-1);
+        if (!dialogo.contains(document.activeElement) || (evento.shiftKey ? document.activeElement === primero : document.activeElement === ultimo)) {
+          evento.preventDefault();
+          (evento.shiftKey ? ultimo : primero).focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", manejarTecla);
+    return () => {
+      document.removeEventListener("keydown", manejarTecla);
+      origen?.focus?.({ preventScroll: true });
+    };
+  }, [hayDialogo]);
+  useEffect(() => {
+    if (productoSeleccionado || mostrarCarrito) document.querySelector("[data-cerrar-dialogo]")?.focus();
+  }, [productoSeleccionado, mostrarCarrito]);
   const temporizadorAviso = useRef(null);
   useEffect(() => () => clearTimeout(temporizadorAviso.current), []);
   // Estado del menú público
-  const [turnoMenu, setTurnoMenu] = useState(() =>
-  DESAYUNOS_HABILITADOS && turnoAbierto("desayunos")
-    ? "desayunos"
-    : "noche"
-);
-  const { menuData, menuVisible, catalogos, cargandoMenu } = useCatalogoMenu(turnoMenu);
+  const { menuData: datosMenu, catalogos, estadosDisponibilidad, cargandoMenu, errorMenu, errorCatalogos, reintentarMenu } = catalogoActual;
+  const { precios, cargando: cargandoPrecios, error: errorPrecios, reintentar: reintentarPrecios } = preciosActuales;
+  const menuData = ensamblarMenu(datosMenu, precios, { vistaPrevia: vistaDesayunosLocal, estados: estadosDisponibilidad });
+  const productoActual = menuData.find(({ id }) => id === productoSeleccionado?.id) ?? productoSeleccionado;
+  const menuVisible = menuData.filter((producto) =>
+    (Array.isArray(producto.turnos) ? producto.turnos : ["noche"]).includes(turnoMenu),
+  );
   // Estados del Carrito y Cliente
-  const [carrito, setCarrito] = useState(() => {
-    const guardado = localStorage.getItem("morchis_carrito");
-    return guardado ? JSON.parse(guardado) : [];
-  });
+  const almacenamiento = claveCarrito(turnoMenu, vistaDesayunosLocal);
+  const [carrito, setCarrito] = useState(() => leerCarrito(almacenamiento));
+  const [abiertoEnWhatsApp, setAbiertoEnWhatsApp] = useState(false);
+  const [buscar, setBuscar] = useState("");
+  useEffect(() => persistirCarrito(almacenamiento, carrito), [almacenamiento, carrito]);
   const [nombreCliente, setNombreCliente] = useState("");
   const [tipoEntrega, setTipoEntrega] = useState("recoger"); // 'recoger' | 'domicilio' | 'sucursal'
   const [direccion, setDireccion] = useState("");
   const [metodoPago, setMetodoPago] = useState("efectivo");
   const [billete, setBillete] = useState("");
   // Lógica de Horarios
-  const estaAbierto = turnoAbierto(turnoMenu);
-const estadoLocal = estaAbierto ? "ABIERTO" : "CERRADO";
-const colorEstado = estaAbierto
-  ? "bg-green-100 text-green-900"
-  : "bg-red-100 text-red-900";
+  const datosNoDisponibles = errorMenu || errorCatalogos || errorPrecios;
+  const horarioAbierto = turnoDisponible(turnoMenu, reloj);
+  const estaAbierto = !vistaDesayunosLocal && !datosNoDisponibles && !cargandoMenu && !cargandoPrecios && horarioAbierto;
+  const razonCierre = datosNoDisponibles ? "Menú sin verificar" : "Fuera de horario";
+  const canastaBloqueada = !vistaDesayunosLocal && !estaAbierto;
+  const estadoLocal = horarioAbierto ? "ABIERTO" : "CERRADO";
+  const colorEstado = vistaDesayunosLocal ? "bg-amber-100 text-amber-950"
+    : horarioAbierto ? "bg-green-100 text-green-900" : "bg-red-100 text-red-900";
   const cerrarAviso = () => {
     clearTimeout(temporizadorAviso.current);
     setAviso(null);
@@ -54,11 +132,52 @@ const colorEstado = estaAbierto
       temporizadorAviso.current = setTimeout(() => setAviso(null), 3000);
     }
   };
+  function puedeCambiarPedido() {
+    if (vistaDesayunosLocal) return true;
+    if (!turnoDisponible(turnoMenu)) {
+      mostrarAviso("Puedes consultar este menú. Los pedidos se abren en su horario.");
+      return false;
+    }
+    if (datosNoDisponibles || cargandoMenu || cargandoPrecios) {
+      mostrarAviso("No pudimos verificar el menú. Intenta de nuevo.");
+      return false;
+    }
+    return true;
+  }
   const agregarAlCarrito = (nuevoItem) => {
-    setCarrito([...carrito, { ...nuevoItem, idUnico: Date.now() }]);
+    if (!puedeCambiarPedido()) return;
+    const linea = { ...nuevoItem, idUnico: idDeLinea() };
+    setAbiertoEnWhatsApp(false);
+    setCarrito((anterior) => [...anterior, linea]);
     mostrarAviso(`${nuevoItem.cantidad}x ${nuevoItem.nombreProducto} agregado`, "exito");
   };
+  function editarPan(item) {
+    const producto = menuData.find(({ id }) => id === item.productoId);
+    if (!producto?.tipoPan || producto.agotado) return mostrarAviso("Este producto ya no se puede editar.");
+    setPanEnEdicion(item);
+    setProductoSeleccionado(producto);
+  }
+  function cerrarPan() {
+    setPanEnEdicion(null);
+    setProductoSeleccionado(null);
+    cerrarAviso();
+  }
+  function guardarPan(item) {
+    if (panEnEdicion && !puedeCambiarPedido()) return;
+    setAbiertoEnWhatsApp(false);
+    if (panEnEdicion) {
+      setCarrito((anterior) => anterior.map((linea) =>
+        linea.idUnico === panEnEdicion.idUnico ? { ...item, idUnico: linea.idUnico } : linea,
+      ));
+      cerrarPan();
+      mostrarAviso("Cambios guardados", "exito");
+    } else {
+      cerrarPan();
+      agregarAlCarrito(item);
+    }
+  }
   const quitarDelCarrito = (idUnico) => {
+    setAbiertoEnWhatsApp(false);
     const nuevoCarrito = carrito.filter((item) => item.idUnico !== idUnico);
     setCarrito(nuevoCarrito);
     if (nuevoCarrito.length === 0) setMostrarCarrito(false);
@@ -78,7 +197,7 @@ const colorEstado = estaAbierto
   // CONTROL DE CARGA DEL MENÚ PÚBLICO
   // ========================================================
   // 1. Mostrar pantalla de carga
-  if (cargandoMenu) {
+  if ((cargandoMenu || cargandoPrecios) && !vistaDesayunosLocal) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#ffd200] mb-4"></div>
@@ -92,132 +211,129 @@ const colorEstado = estaAbierto
   // VISTA PRINCIPAL DE LA APP (Cliente)
   // ========================================================
   const enviarAWhatsApp = () => {
-    if (!turnoAbierto(turnoMenu)) {
+    if (vistaDesayunosLocal) return;
+    if (datosNoDisponibles || cargandoMenu || cargandoPrecios) return mostrarAviso("No pude verificar los precios. Recarga e inténtalo otra vez.");
+    if (!turnoDisponible(turnoMenu)) {
   return mostrarAviso(`El menú de ${TURNOS[turnoMenu].nombre} está cerrado.`);
 }
+    if (!carrito.length) return mostrarAviso("Agrega algún producto a tu orden.");
     if (!nombreCliente.trim()) return mostrarAviso("Por favor, ingresa tu nombre.");
     if (tipoEntrega === "domicilio" && !direccion.trim())
       return mostrarAviso("Ingresa tu dirección de entrega.");
-    if (metodoPago === "efectivo" && cambioEfectivo < 0) {
+    if (metodoPago === "efectivo" && (!Number.isFinite(pagaCon) || cambioEfectivo < 0)) {
       return mostrarAviso(`El monto en efectivo debe cubrir ${formatoPesos(totalPagar)}.`);
     }
     for (const item of carrito) {
-  const producto = menuData.find((entrada) =>
+  const producto = menuVisible.find((entrada) =>
     item.productoId
       ? entrada.id === item.productoId
       : entrada.nombre === item.nombreProducto
   );
-  const error = revisarArticulo(item, producto, catalogos);
+  const error = revisarArticulo(item, producto, catalogos, tipoEntrega);
   if (error) {
     return mostrarAviso(
-      `${item.nombreProducto}: ${error}. Quita este artículo y agrégalo de nuevo.`
+      `${item.nombreProducto}: ${error}. Revisa el artículo en el carrito.`
     );
   }
 }
     const mensaje = armarMensajePedido({
       carrito, menuData, nombreCliente, tipoEntrega, direccion, metodoPago, billete, totalPagar,
     });
-    localStorage.removeItem("morchis_carrito");
-    setCarrito([]);
     const url = `https://wa.me/${TELEFONO_MORCHIS}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, "_blank");
+    const ventana = window.open("about:blank", "_blank");
+    if (!ventana) return mostrarAviso("El navegador bloqueó WhatsApp. Permite las ventanas emergentes y vuelve a intentarlo.");
+    ventana.opener = null;
+    ventana.location.replace(url);
+    setAbiertoEnWhatsApp(true);
   };
+  function finalizarCarrito() {
+    setCarrito([]);
+    setAbiertoEnWhatsApp(false);
+    setMostrarCarrito(false);
+    mostrarAviso("Carrito listo para un nuevo pedido.", "exito");
+  }
+
+  const normalizar = (valor) => String(valor ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const textoBuscar = normalizar(buscar).trim();
+  const resultados = textoBuscar ? menuVisible.filter((producto) =>
+    normalizar([producto.nombre, ...(producto.variantes ?? []).map(({ nombre }) => nombre)].join(" ")).includes(textoBuscar)
+  ) : menuVisible;
+
   return (
-    <div className="morchis-menu min-h-screen pb-28" data-turno={turnoMenu}>
+    <div className="morchis-menu min-h-screen" data-turno={turnoMenu} data-tiene-pedido={carrito.length > 0}>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap" precedence="morchis-fonts" />
       <header className="morchis-encabezado border-b border-black/10 px-4 py-2 sticky top-0 z-20">
-        <div className="flex justify-between items-center gap-3 max-w-lg mx-auto">
+        <div className="flex justify-between items-center gap-3 morchis-ancho">
           <h1 className="morchis-logo">
             <img
-              src="/img/logoicon.webp"
+              key={turnoMenu}
+              src={turnoMenu === "desayunos" ? "/img/logo-desayunos.png" : "/img/logoicon.webp"}
               alt="MORCHIS"
+              onError={(evento) => {
+                const imagen = evento.currentTarget;
+                const ruta = imagen.getAttribute("src");
+                if (ruta === "/img/logo-desayunos.png") imagen.src = "/img/logoicon.webp";
+                else if (ruta === "/img/logoicon.webp") imagen.src = "/img/logoicon.png";
+              }}
             />
           </h1>
           <div className="shrink-0 whitespace-nowrap text-right">
             <span
               className={`${colorEstado} px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider`}
             >
-              {estadoLocal}
+              {vistaDesayunosLocal ? "VISTA PREVIA" : estadoLocal}
             </span>
           </div>
         </div>
       </header>
-      <main className="max-w-lg mx-auto pt-6 px-4 pb-6">
-        <div className="mb-5">
-  <div className="flex gap-2" aria-label="Menús de MORCHIS">
-    {Object.entries(TURNOS).map(([id, turno]) => (
-      <button
-        key={id}
-        type="button"
-        aria-pressed={turnoMenu === id}
-        disabled={id === "desayunos" && !DESAYUNOS_HABILITADOS}
-        onClick={() => {
-          if (id === turnoMenu) return;
-          if (carrito.length > 0) {
-            return mostrarAviso(
-              "Termina tu pedido o quita los productos del carrito antes de cambiar de menú."
-            );
-          }
-          setTurnoMenu(id);
-        }}
-        className={`flex-1 rounded-xl border px-4 py-3 font-bold ${
-          turnoMenu === id
-            ? "morchis-pestana-activa border-transparent"
-            : "bg-white border-gray-200 text-gray-900 disabled:text-gray-500"
-        }`}
-      >
-        {id === "desayunos" && !DESAYUNOS_HABILITADOS
-  ? "Desayunos · Próximamente"
-  : turno.nombre}
-      </button>
-    ))}
-  </div>
-  <p className="mt-2 text-center text-sm text-gray-600">
-    {TURNOS[turnoMenu].horario}
-  </p>
-</div>
-        <CatalogoMenu productos={menuVisible} onSeleccionar={setProductoSeleccionado} />
-      </main>
-      {aviso && (
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-          <div className="morchis-vidrio pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border border-black/10 p-3 text-left shadow-xl">
-            <span aria-hidden="true" className={`grid h-9 w-9 shrink-0 place-items-center rounded-full font-black ${aviso.tipo === "exito" ? "bg-green-100 text-green-900" : "morchis-tinte morchis-dorado"}`}>
-              {aviso.tipo === "exito" ? "✓" : "!"}
-            </span>
-            <div role={aviso.tipo === "exito" ? "status" : "alert"} className="min-w-0 flex-1 break-words text-sm font-semibold text-gray-900">
-              <p className="font-extrabold">{aviso.tipo === "exito" ? "Listo" : "Revisa tu pedido"}</p>
-              <p>{aviso.mensaje}</p>
-            </div>
-            <button type="button" onClick={cerrarAviso} aria-label="Cerrar aviso" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gray-100 text-lg text-gray-700">
-              ×
-            </button>
+      <main className="morchis-ancho px-4 pb-6 pt-4 sm:px-6 sm:pt-6">
+        <p className="morchis-horario-turno mb-5" role="status">
+          <strong>{TURNOS[turnoMenu].nombre}</strong> · {TURNOS[turnoMenu].horario}
+          {!vistaDesayunosLocal && !horarioAbierto && <span> · Puedes ver el menú; aún no se reciben pedidos.</span>}
+        </p>
+        {datosNoDisponibles && (
+          <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+            <p className="text-sm font-semibold">No pudimos verificar el menú completo. El envío de pedidos está pausado.</p>
+            <button type="button" className="min-h-11 font-bold underline" onClick={() => { reintentarMenu(); reintentarPrecios(); }}>Reintentar</button>
           </div>
-        </div>
-      )}
-      <AvisoPedido aviso={aviso} onCerrar={cerrarAviso} />
-      {productoSeleccionado && (
+        )}
+        <CatalogoMenu key={turnoMenu} productos={resultados} onSeleccionar={setProductoSeleccionado}
+          buscando={Boolean(textoBuscar)}
+          buscador={<label className="morchis-buscar">Busca en el menú
+            <input type="search" value={buscar} onChange={(evento) => setBuscar(evento.target.value)} placeholder="Ej. chilaquiles, café o burger" />
+          </label>} />
+      </main>
+
+      <AvisoCliente aviso={aviso} onCerrar={cerrarAviso} />
+      {productoActual?.tipoPan ? (
+        <ModalPan key={panEnEdicion?.idUnico ?? productoSeleccionado.id}
+          producto={productoActual} item={panEnEdicion} cerrar={cerrarPan} guardar={guardarPan}
+          bloqueoHorario={canastaBloqueada ? razonCierre : ""} />
+      ) : productoSeleccionado && (
         <ModalPersonalizacion
           key={productoSeleccionado.id}
-          producto={productoSeleccionado}
+          producto={productoActual}
           cerrar={() => {
             setProductoSeleccionado(null);
             cerrarAviso();
           }}
           agregarAlCarrito={agregarAlCarrito}
+          bloqueoHorario={canastaBloqueada ? razonCierre : ""}
           catalogos={catalogos}
           mostrarAviso={mostrarAviso}
           cerrarAviso={cerrarAviso}
         />
       )}
-      {carrito.length > 0 && !mostrarCarrito && !productoSeleccionado && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 morchis-vidrio morchis-area-inferior border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
+      {!hayDialogo && <BarraTurnos turnoMenu={turnoMenu} reloj={reloj} vistaPrevia={vistaDesayunosLocal} cambiarTurno={cambiarTurno}>
+      {carrito.length > 0 && (
+        <div className="morchis-dock-pedido">
           <div className="max-w-lg mx-auto flex justify-between items-center gap-4">
             <div className="flex-1">
               <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                {totalArticulos} artículos
+                {totalArticulos} {totalArticulos === 1 ? "artículo" : "artículos"}
               </p>
               <p className="font-black text-xl text-gray-900">
-                ${totalProductos}{" "}
+                {formatoPesos(totalProductos)}{" "}
                 <span className="text-sm font-medium">MXN</span>
               </p>
             </div>
@@ -225,17 +341,19 @@ const colorEstado = estaAbierto
               onClick={() => setMostrarCarrito(true)}
               className="morchis-accion px-8 py-3.5 rounded-xl font-bold transition-all shadow-sm"
             >
-              Ver Orden
+              Ver pedido
             </button>
           </div>
         </div>
       )}
-      {mostrarCarrito && (
+      </BarraTurnos>}
+      {mostrarCarrito && !productoSeleccionado && (
         <CarritoPedido
           carrito={carrito}
           menuData={menuData}
           setMostrarCarrito={setMostrarCarrito}
           quitarDelCarrito={quitarDelCarrito}
+          editarPan={editarPan}
           nombreCliente={nombreCliente}
           setNombreCliente={setNombreCliente}
           tipoEntrega={tipoEntrega}
@@ -252,6 +370,9 @@ const colorEstado = estaAbierto
           costoEnvioReal={costoEnvioReal}
           totalPagar={totalPagar}
           estaAbierto={estaAbierto}
+          razonCierre={vistaDesayunosLocal ? "Vista previa · No envía pedidos" : razonCierre}
+          abiertoEnWhatsApp={abiertoEnWhatsApp}
+          finalizarCarrito={finalizarCarrito}
           enviarAWhatsApp={enviarAWhatsApp}
         />
       )}

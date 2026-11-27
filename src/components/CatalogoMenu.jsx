@@ -1,72 +1,85 @@
+import FotoProducto from "./FotoProducto";
 import { useState } from "react";
+import { gruposPorTipo } from "../config/tipoMenu";
+import { descripcionDeTarjeta } from "../config/textosTarjetas";
+import "../styles/tarjetasMenu.css";
 
-function ImageWithSkeleton({ src, alt }) {
-  const [cargado, setCargado] = useState(false);
+function distintivo(producto) {
+  if (producto.etiquetaTarjeta) return producto.etiquetaTarjeta;
+  const variantes = producto.variantes?.filter((variante) => !variante.agotada && !variante.chickenBaseId) ?? [];
+  if (variantes.length === 0) return "";
+  const piezas = variantes.map(({ nombre }) => nombre?.match(/^(\d+)\s*(?:piezas|pzas\.?|pz\.?)$/i)?.[1]);
+  if (piezas.every(Boolean)) return `${piezas.join(" / ")} pzas`;
+  return variantes.length === 1 ? "1 opción" : `${variantes.length} opciones`;
+}
+
+function TarjetasMenu({ productos, onSeleccionar }) {
   return (
-    <div className="relative w-full h-full bg-gray-200">
-      {!cargado && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
-      )}
-      <img
-        src={src}
-        alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out group-hover:scale-105 ${cargado ? "opacity-100" : "opacity-0"}`}
-        onLoad={() => setCargado(true)}
-      />
-    </div>
+      <div className="morchis-tarjetas">
+        {[...productos].sort((a, b) => Number(Boolean(a.agotado)) - Number(Boolean(b.agotado))).map((producto) => {
+          const agotado = Boolean(producto.agotado);
+          const etiqueta = agotado ? "Agotado" : distintivo(producto);
+          const descripcion = descripcionDeTarjeta(producto);
+          return (
+            <button key={producto.id} id={producto.id} type="button" disabled={agotado}
+              className="morchis-tarjeta" onClick={() => onSeleccionar(producto)}>
+              <FotoProducto producto={producto} />
+              {etiqueta && <span className="morchis-tarjeta-etiqueta">{etiqueta}</span>}
+              <span className="morchis-tarjeta-contenido">
+                <span className="morchis-tarjeta-texto">
+                  <span className="morchis-tarjeta-nombre">{producto.nombre}</span>
+                  {descripcion && <span className="morchis-tarjeta-descripcion">{descripcion}</span>}
+                </span>
+                {!agotado && <span className="morchis-tarjeta-flecha" aria-hidden="true">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12h15m-6-6 6 6-6 6" />
+                  </svg>
+                </span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
   );
 }
 
-export default function CatalogoMenu({ productos, onSeleccionar }) {
-  if (productos.length === 0) {
-    return (
-      <p className="mt-5 text-center text-sm text-gray-600">
-        Todavía no hay productos en este menú.
-      </p>
-    );
-  }
-
+export default function CatalogoMenu({
+  productos = [],
+  grupos,
+  buscador,
+  buscando = false,
+  onSeleccionar,
+  renderDetalleGrupo,
+  titulo = "¿Qué se te antoja hoy?",
+  subtitulo = "Toca una categoría para ver opciones",
+}) {
+  const [tipo, setTipo] = useState("comida");
+  const secciones = grupos ?? [{ id: "catalogo", productos }];
+  const visibles = buscando ? secciones.filter((grupo) => grupo.productos.length) : gruposPorTipo(secciones, tipo);
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      {[...productos]
-        .sort((a, b) => (a.agotado === b.agotado ? 0 : a.agotado ? 1 : -1))
-        .map((producto) => {
-          const estaAgotado = producto.agotado;
-          return (
-            <div
-              key={producto.id}
-              id={producto.id}
-              onClick={() =>
-                !estaAgotado && onSeleccionar(producto)
-              }
-              className={`bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden flex flex-col group scroll-mt-32 ${estaAgotado ? "opacity-60 grayscale cursor-not-allowed" : "cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all active:scale-95"}`}
-            >
-              <div className="relative h-28 sm:h-32 w-full overflow-hidden">
-                <ImageWithSkeleton
-                  src={producto.imagen}
-                  alt={producto.nombre}
-                />
-                {estaAgotado && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-                    <span className="bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-lg tracking-widest shadow-lg">
-                      AGOTADO
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="p-3 flex-1 flex flex-col justify-between items-center text-center">
-                <h3 className="morchis-titulo-producto text-gray-900 text-lg sm:text-xl leading-tight">
-                  {producto.nombre}
-                </h3>
-                <span
-                  className={`text-[10px] sm:text-xs font-bold mt-2 px-2 py-1 rounded-md ${estaAgotado ? "text-gray-500 bg-gray-100" : "morchis-tinte morchis-dorado"}`}
-                >
-                  {estaAgotado ? "No disponible" : "Ver opciones"}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-    </div>
+    <section className="morchis-catalogo">
+      {titulo && <h2 className="morchis-catalogo-titulo">{titulo}</h2>}
+      {subtitulo && <p className="morchis-catalogo-subtitulo">{subtitulo}</p>}
+      {buscador}
+      {!buscando && <div className="morchis-filtros" role="group" aria-label="Tipo de menú">
+        {[["comida", "Comida"], ["bebidas", "Bebidas"]].map(([id, nombre]) => (
+          <button key={id} type="button" className="morchis-filtro"
+            aria-pressed={tipo === id} onClick={() => setTipo(id)}>
+            {nombre}
+          </button>
+        ))}
+      </div>}
+      {visibles.length ? visibles.map((grupo) => (
+        <div key={grupo.id} className="morchis-catalogo-grupo">
+          {grupo.titulo && <h3 className="morchis-catalogo-grupo-titulo">{grupo.titulo}</h3>}
+          <TarjetasMenu productos={grupo.productos} onSeleccionar={onSeleccionar} />
+          {renderDetalleGrupo?.(grupo)}
+        </div>
+      )) : (
+        <p className="morchis-catalogo-subtitulo" role="status">
+          {buscando ? "No encontramos resultados. Prueba con otro nombre." : tipo === "bebidas" ? "Por ahora no hay bebidas en este menú." : "Por ahora no hay platillos en este menú."}
+        </p>
+      )}
+    </section>
   );
 }

@@ -17,16 +17,19 @@ const sazonadoresSinSal = sazonadoresPapas.filter((nombre) => normalizar(nombre)
 
 export function opcionesProducto(producto, variante, catalogos) {
   const id = normalizar(producto.id);
+  if (id === "licuados") return { titulo: "Sabor del licuado", opciones: catalogos.frappes ?? [] };
+  if (["te_caliente", "te_helado", "jarra_te_helado"].includes(id))
+    return { titulo: "Sabor del té", opciones: catalogos.tes ?? [] };
   const esFrappe = Boolean(producto.esFrappe) || /frapp[eé]/i.test(`${producto.id ?? ""} ${producto.nombre ?? ""}`);
-  const cafeConSabor = id === "cafe_frio" || (id === "cafe_caliente" && (variante?.id === "ccs" || normalizar(variante?.nombre) === "americano con sabor"));
+  const cafeConSabor = id === "cafe_frio" || id === "cafe_latte_frio" || (id === "cafe_caliente" && (variante?.id === "ccs" || normalizar(variante?.nombre) === "americano con sabor"));
   if (esFrappe || cafeConSabor) {
-    const sabores = catalogos.frappes ?? [];
+    const sabores = (cafeConSabor && id === "cafe_latte_frio" ? catalogos.cafes : catalogos.frappes) ?? [];
     return {
       titulo: esFrappe ? "Sabor del frappe" : "Sabor del café",
       opciones: cafeConSabor ? sabores.filter((nombre) => normalizar(nombre) !== "fresa") : sabores,
     };
   }
-  if (id === "cafe_caliente") return null;
+  if (id === "cafe_caliente" || id === "cafe_frio_clasico") return null;
   const opciones = catalogoDeProducto(producto, catalogos) ?? [];
   return producto.opcionObligatoria || opciones.length ? {
     titulo: producto.opcionObligatoria?.titulo ?? "Sabor",
@@ -38,7 +41,7 @@ export function opcionesSalsas(producto, variante, catalogos) {
   const id = normalizar(producto.id);
   const alitasOBoneless = id === "alitas" || id === "boneless";
   const banderillas = id === "banderillas_coreanas";
-  const chicken = id === "burgers" && /\bchicken\b/i.test(variante?.nombre ?? "");
+  const chicken = (id === "burgers" || id === "jochos") && Boolean(variante?.chicken || /\bchicken\b/i.test(variante?.nombre ?? ""));
   const maximo = banderillas || chicken ? 1 : producto.maxSalsas || (alitasOBoneless ? 3 : 0);
   const opciones = Array.from(new Set(catalogos.salsas_alitas ?? []))
     .filter((salsa) => !chicken || !["clasicas", "clasicos"].includes(tipoSalsa(salsa)));

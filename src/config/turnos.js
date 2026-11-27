@@ -1,11 +1,11 @@
 const ZONA_HORARIA = "America/Mexico_City";
 
-export const DESAYUNOS_HABILITADOS = false; // Cambiar a true si se habilitan los desayunos
+export const DESAYUNOS_HABILITADOS = true;
 export const TURNOS = {
   desayunos: {
     nombre: "Desayunos",
     get horario() {
-      return formatoHorario("Lunes a Viernes", this);
+      return formatoHorario("Lun a vie", this);
     },
     dias: ["Mon", "Tue", "Wed", "Thu", "Fri"],
     apertura: 7,
@@ -14,7 +14,7 @@ export const TURNOS = {
   noche: {
     nombre: "Noche",
     get horario() {
-      return formatoHorario("Jueves a Domingo", this);
+      return formatoHorario("Jue a dom", this);
     },
     dias: ["Thu", "Fri", "Sat", "Sun"],
     apertura: 16,
@@ -28,6 +28,7 @@ function formatoHorario(etiquetaDias, { apertura, cierre }) {
 }
 
 export function turnoAbierto(turno, fecha = new Date()) {
+  if (!TURNOS[turno]) return false;
   const partes = new Intl.DateTimeFormat("en-US", {
     timeZone: ZONA_HORARIA,
     weekday: "short",
@@ -38,4 +39,12 @@ export function turnoAbierto(turno, fecha = new Date()) {
   const hora = Number(partes.find((parte) => parte.type === "hour").value);
   const { dias, apertura, cierre } = TURNOS[turno];
   return dias.includes(dia) && hora >= apertura && hora < cierre;
+}
+
+export function turnoDisponible(turno, fecha = new Date()) {
+  return (turno !== "desayunos" || DESAYUNOS_HABILITADOS) && turnoAbierto(turno, fecha);
+}
+
+export function turnoActivo(fecha = new Date()) {
+  return Object.keys(TURNOS).find((turno) => turnoDisponible(turno, fecha)) ?? null;
 }

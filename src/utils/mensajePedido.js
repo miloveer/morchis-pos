@@ -66,12 +66,38 @@ export function mostrarCarneEnPedido(item, menuData = []) {
   return disponibles.size > 1 && disponibles.has(texto(item.proteina).toLowerCase());
 }
 
+function chileParaPedido(chile) {
+  return /^jalapeños?$/i.test(texto(chile)) ? "Jalapeño" : texto(chile);
+}
+
+export function detallePanParaPedido(item) {
+  const detalle = item.detallePan;
+  const extras = detalle.extras.map(({ nombre, cantidad }) => `${nombre}${cantidad > 1 ? ` ×${cantidad} por pieza` : ""}`);
+  const queso = detalle.estilo.id === "cheese"
+    ? texto(detalle.estilo.incluye?.[0]).replace(/^queso\s+/i, "")
+    : "";
+  const estilo = [detalle.estilo.nombre, queso].filter(Boolean).join(" ");
+  const titulo = [
+    `${detalle.pan} de ${detalle.base.nombre.toLocaleLowerCase("es-MX")}${item.cantidad > 1 ? ` ×${item.cantidad}` : ""}`,
+    ...extras,
+  ].join(" + ") + (detalle.estilo.id !== "sencilla" ? ` · Estilo ${estilo}` : "");
+  const preparacion = item.sinIngredientes?.length ? `Sin ${item.sinIngredientes.join(", ")}` : "Con todo";
+  const lineas = [[preparacion, chileParaPedido(item.chile)].filter(Boolean).join(", ")];
+  nota(lineas, item.notas, "");
+  return { titulo, lineas, importe: `${formatoPesos(detalle.total * item.cantidad)} MXN` };
+}
+
 function ficha(item, menuData) {
+  if (item.detallePan) {
+    const { titulo, lineas, importe } = detallePanParaPedido(item);
+    return [`*${titulo}*`, ...lineas, `Total: ${importe}`].join("\n");
+  }
   const lineas = [`*${tituloArticulo(item)}*`];
   const papasSolas = item.detallesPapas &&
     !(item.papasDeCombo ?? Boolean(item.combo && !/^solo\b/i.test(item.combo)));
   if (mostrarCarneEnPedido(item, menuData)) lineas.push(`- Carne: ${item.proteina}`);
-  if (item.removibles?.length) lineas.push(`- ${item.removibles.join(", ")}`);
+  const preparacion = [...(item.removibles ?? []), chileParaPedido(item.chile)].filter(Boolean);
+  if (preparacion.length) lineas.push(`- ${preparacion.join(", ")}`);
   const seleccion = item.opcionObligatoria || item.saborFrappe;
   if (seleccion) lineas.push(`- ${item.tituloOpcion || (item.saborFrappe ? "Sabor" : "Selección")}: ${seleccion}`);
   if (item.salsas?.length) {

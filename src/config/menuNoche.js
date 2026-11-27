@@ -19,12 +19,33 @@ export function completarMenuNoche(menu) {
       extras: [{ id: "ens_pollo", nombre: "Pollo", precio: 30 }],
     }),
     producto("cafe_caliente", "Café caliente", [
-      ...["Americano", "Capuchino", "Con leche", "Con crema", "Moka"].map((nombre, i) => variante(`cc${i}`, nombre, 30)),
+      variante("cc0", "Americano", 30), variante("cc2", "Con leche", 30), variante("cc3", "Con crema", 30),
       variante("ccs", "Americano con sabor", 40),
+      variante("cc1", "Capuchino", 30), variante("cc4", "Moka", 30),
+      variante("cclc", "Latte caramelo", null),
     ]),
-    producto("cafe_frio", "Café frío", [variante("cfch", "Chico", 45), variante("cfg", "Grande", 65)]),
+    producto("cafe_frio", "Café frío de sabor", [variante("cfch", "Chico", 45), variante("cfg", "Grande", 65)]),
+    producto("cafe_frio_clasico", "Café frío", ["Americano", "Con crema", "Con leche"].flatMap((opcion, i) =>
+      ["Chico", "Grande"].map((tamano, j) => variante(`cfc${i}${j}`, `${opcion} · ${tamano}`, null)))),
+    producto("cafe_latte_frio", "Café latte frío", [variante("clf_ch", "Chico", null), variante("clf_g", "Grande", null)]),
   ];
   const admin = new Map(menu.map((entrada) => [entrada.id, entrada]));
   return [...menu.filter(({ id }) => !nuevos.some((nuevo) => nuevo.id === id)),
-    ...nuevos.map((nuevo) => ({ ...nuevo, ...admin.get(nuevo.id) }))];
+    ...nuevos.map((nuevo) => {
+      const guardado = admin.get(nuevo.id);
+      const entrada = { ...nuevo, ...guardado };
+      if (["cafe_frio", "cafe_frio_clasico", "cafe_latte_frio"].includes(nuevo.id)) {
+        return { ...entrada, nombre: nuevo.nombre, elegirTamanoPrimero: true,
+          variantes: nuevo.variantes.map((base) => ({
+            ...base, ...guardado?.variantes?.find((v) => v.id === base.id),
+            tamano: /chico/i.test(base.nombre) ? "Chico" : "Grande",
+            nombreOpcion: nuevo.id === "cafe_frio_clasico" ? base.nombre.split(" · ")[0] : undefined,
+          })),
+        };
+      }
+      if (nuevo.id === "cafe_caliente") return { ...entrada,
+        variantes: nuevo.variantes.map((base) => ({ ...base, ...guardado?.variantes?.find((v) => v.id === base.id) })),
+      };
+      return entrada;
+    })];
 }

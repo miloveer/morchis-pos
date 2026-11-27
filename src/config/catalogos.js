@@ -12,6 +12,7 @@ export const CATALOGOS_PREDETERMINADOS = {
   sodas: saboresSoda,
   refrescos: saboresRefresco,
   cafes: saboresCafe,
+  tes: [],
 };
 
 export const NOMBRES_CATALOGOS = {
@@ -20,6 +21,7 @@ export const NOMBRES_CATALOGOS = {
   sodas: "Sabores de sodas y bebidas frutales",
   refrescos: "Refrescos disponibles",
   cafes: "Sabores de café",
+  tes: "Sabores de té",
 };
 
 export function catalogoDeProducto(producto, catalogos) {
