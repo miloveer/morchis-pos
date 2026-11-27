@@ -1,0 +1,71 @@
+@import "tailwindcss";
+@source "../App.jsx";
+@source "../components";
+:root { color-scheme: light; }
+body { margin: 0; }
+.morchis-menu {
+  --m-acento: #ffd200;
+  --m-oscuro: #624700;
+  --m-claro: #fff4c8;
+  --m-tinta: #251e14;
+  --m-fondo: #f7f6f2;
+  background: var(--m-fondo);
+  color: var(--m-tinta);
+  font-family: Barlow, system-ui, sans-serif;
+  text-align: left;
+}
+.morchis-menu[data-turno="desayunos"] {
+  --m-acento: #e85628;
+  --m-oscuro: #8e2b10;
+  --m-claro: #ffede6;
+  --m-fondo: #fbf6f3;
+}
+.morchis-ancho { width: min(100%, 68rem); margin-inline: auto; }
+.morchis-encabezado { background: var(--m-acento); }
+.morchis-logo { display: flex; align-items: center; min-width: 0; margin: 0; }
+.morchis-logo img { height: clamp(3.05rem, 9vw, 4.8rem); max-width: min(47vw, 16rem); width: auto; object-fit: contain; }
+.morchis-horario-turno { color: #564b40; font-size: .9rem; }
+.morchis-horario-turno strong { color: var(--m-tinta); }
+.morchis-menu { padding-bottom: calc(5.7rem + env(safe-area-inset-bottom, 0px)); }
+.morchis-menu[data-tiene-pedido="true"] { padding-bottom: calc(11.7rem + env(safe-area-inset-bottom, 0px)); }
+.morchis-dock {
+  position: fixed; inset: auto 0 0; z-index: 20;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--m-fondo); border-top: 1px solid #251e1426; box-shadow: 0 -4px 18px #251e1414;
+}
+.morchis-dock-pedido { background: #fff; padding: .75rem 1rem; border-bottom: 1px solid #251e1426; }
+.morchis-barra-turnos { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .5rem; padding: .35rem max(.6rem, env(safe-area-inset-right)) .35rem max(.6rem, env(safe-area-inset-left)); }
+.morchis-turno {
+  display: grid; justify-items: center; align-content: center; gap: .12rem; min-height: 68px; border-radius: .9rem;
+  background: transparent; color: #564b40; font-size: .9rem; font-weight: 800; line-height: 1.15;
+  border: 1px solid transparent;
+}
+.morchis-turno small { font-size: .68rem; font-weight: 600; }
+.morchis-turno:hover { background: var(--m-claro); }
+.morchis-turno[aria-pressed="true"] { background: var(--m-claro); color: var(--m-oscuro); border-color: var(--m-acento); }
+.morchis-turno[data-horario="abierto"] small { color: #14603c; }
+.morchis-menu .morchis-turno:focus-visible { outline-color: var(--m-oscuro); }
+.morchis-accion { background: var(--m-acento); color: #21160e; }
+.morchis-accion { min-height: 44px; }
+.morchis-elegido { background: var(--m-claro); color: var(--m-oscuro); border-color: var(--m-oscuro); }
+.morchis-dorado { color: var(--m-oscuro); }
+.morchis-vidrio { background: #fff; }
+.morchis-carrito { background: var(--m-fondo); height: 100dvh; }
+.morchis-area-inferior { padding-bottom: max(.85rem, env(safe-area-inset-bottom)); }
+.morchis-hoja { border-radius: 1.4rem 1.4rem 0 0; }
+.morchis-titulo-hoja { font-weight: 900; font-size: clamp(1.45rem, 6vw, 2rem); line-height: 1.1; color: #fff; }
+.morchis-menu :is(button, summary):not(:disabled) { cursor: pointer; }
+.morchis-menu :is(button, summary, input, textarea):focus-visible { outline: 2px solid var(--m-oscuro); outline-offset: 2px; }
+.morchis-menu button:disabled { cursor: not-allowed; }
+.morchis-buscar { margin-top: .95rem; display: grid; gap: .3rem; color: #493d31; font-size: .9rem; font-weight: 700; }
+.morchis-buscar input { background: #fff; border: 1px solid #c8bfb4; border-radius: .75rem; min-height: 44px; width: 100%; max-width: 27rem; padding: .5rem .75rem; color: #21160e; font-size: 1rem; }
+@media (min-width: 640px) { .morchis-hoja { border-radius: 1.4rem; } }
+@media (min-width: 760px) {
+  .morchis-menu .morchis-tarjetas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 359px) {
+  .morchis-menu .morchis-tarjeta-flecha { display: none; }
+  .morchis-menu .morchis-tarjeta-contenido { grid-template-columns: minmax(0, 1fr); }
+}
+
+body:has([data-dialogo-cliente]) { overflow: hidden; }
