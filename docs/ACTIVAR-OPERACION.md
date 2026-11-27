@@ -60,3 +60,9 @@ Los socios ven el subtotal del plan por tienda y el total general. Si falta un p
 Pulsa **Editar insumo y foto** y elige una foto; luego guarda. Se comparte una foto por insumo con el equipo. Toca la miniatura para ampliarla. No necesitas activar Firebase Storage.
 
 Para que se puedan guardar la cantidad y la foto, actualiza el bloque de inventario de Firestore con `docs/inventario-firestore.rules.txt` como se explica en el paso 2. Los registros anteriores son compatibles; sus faltantes aparecen automáticamente.
+
+## Pausar el servicio a domicilio
+
+En **Operación → Menú → Servicio a domicilio**, pulsa **Activado · Pausar** o **Pausado · Activar**. Afecta a Desayunos y Noche. El cambio queda guardado hasta que alguien lo reactive. Recoger y En Mesa siguen disponibles dentro de su horario.
+
+Si todavía no se guardó una configuración, Domicilio aparece activo al recibir la primera confirmación de Firebase. Los pedidos a domicilio verifican el estado antes de abrir WhatsApp.

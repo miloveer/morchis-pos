@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import useCatalogoMenu from "./hooks/useCatalogoMenu";
 import CatalogoMenu from "./components/CatalogoMenu";
+import useServicioDomicilio, { verificarServicioDomicilio } from "./hooks/useServicioDomicilio";
+import { AVISO_DOMICILIO_PAUSADO } from "./config/servicioDomicilio";
 import usePreciosMenu from "./hooks/usePreciosMenu";
 import { revisarArticulo } from "./utils/validarPedido";
 import { armarMensajePedido, formatoPesos } from "./utils/mensajePedido";
@@ -25,6 +27,7 @@ export default function App() {
   const [turnoElegido, setTurnoElegido] = useState(null);
   const catalogoActual = useCatalogoMenu();
   const preciosActuales = usePreciosMenu();
+  const servicio = useServicioDomicilio();
   const [horario, setHorario] = useState(() => {
     const reloj = new Date();
     return { reloj, ultimoTurno: turnoActivo(reloj) ?? "noche" };
@@ -52,14 +55,17 @@ export default function App() {
     window.scrollTo(0, 0);
   }
   return <MenuClientes key={turnoMenu} turnoMenu={turnoMenu} reloj={horario.reloj} vistaDesayunosLocal={vistaDesayunosLocal}
-    cambiarTurno={cambiarTurno} catalogoActual={catalogoActual} preciosActuales={preciosActuales} />;
+    cambiarTurno={cambiarTurno} catalogoActual={catalogoActual} preciosActuales={preciosActuales} servicio={servicio} />;
 }
 
-function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, catalogoActual, preciosActuales }) {
+function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, catalogoActual, preciosActuales, servicio }) {
   const [panEnEdicion, setPanEnEdicion] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [aviso, setAviso] = useState(null);
+  const [verificandoPedido, setVerificandoPedido] = useState(false);
+  const ventanaPendiente = useRef(null);
+  useEffect(() => () => ventanaPendiente.current?.close(), []);
   const hayDialogo = Boolean(productoSeleccionado || mostrarCarrito);
   useEffect(() => {
     if (!hayDialogo) return;
@@ -116,6 +122,10 @@ function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, cat
   const datosNoDisponibles = errorMenu || errorCatalogos || errorPrecios;
   const horarioAbierto = turnoDisponible(turnoMenu, reloj);
   const estaAbierto = !vistaDesayunosLocal && !datosNoDisponibles && !cargandoMenu && !cargandoPrecios && horarioAbierto;
+  const domicilioDisponible = servicio.verificado && servicio.activo;
+  const domicilioBloqueado = tipoEntrega === "domicilio" && !domicilioDisponible;
+  const avisoDomicilio = servicio.verificado ? AVISO_DOMICILIO_PAUSADO
+    : "No pudimos confirmar el servicio a domicilio. Puedes recoger o pedir en mesa.";
   const razonCierre = datosNoDisponibles ? "Menú sin verificar" : "Fuera de horario";
   const canastaBloqueada = !vistaDesayunosLocal && !estaAbierto;
   const estadoLocal = horarioAbierto ? "ABIERTO" : "CERRADO";
@@ -210,8 +220,9 @@ function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, cat
   // ========================================================
   // VISTA PRINCIPAL DE LA APP (Cliente)
   // ========================================================
-  const enviarAWhatsApp = () => {
-    if (vistaDesayunosLocal) return;
+  const enviarAWhatsApp = async () => {
+    if (vistaDesayunosLocal || ventanaPendiente.current) return;
+    if (domicilioBloqueado) return mostrarAviso(avisoDomicilio);
     if (datosNoDisponibles || cargandoMenu || cargandoPrecios) return mostrarAviso("No pude verificar los precios. Recarga e inténtalo otra vez.");
     if (!turnoDisponible(turnoMenu)) {
   return mostrarAviso(`El menú de ${TURNOS[turnoMenu].nombre} está cerrado.`);
@@ -243,6 +254,27 @@ function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, cat
     const ventana = window.open("about:blank", "_blank");
     if (!ventana) return mostrarAviso("El navegador bloqueó WhatsApp. Permite las ventanas emergentes y vuelve a intentarlo.");
     ventana.opener = null;
+    if (tipoEntrega === "domicilio") {
+      ventanaPendiente.current = ventana;
+      setVerificandoPedido(true);
+      try {
+        if (!(await verificarServicioDomicilio())) {
+          ventana.close();
+          return mostrarAviso(AVISO_DOMICILIO_PAUSADO);
+        }
+      } catch {
+        ventana.close();
+        return mostrarAviso("No pudimos confirmar el servicio a domicilio. Inténtalo de nuevo.");
+      } finally {
+        ventanaPendiente.current = null;
+        setVerificandoPedido(false);
+      }
+      if (ventana.closed) return;
+      if (!turnoDisponible(turnoMenu)) {
+        ventana.close();
+        return mostrarAviso("El turno ya cerró. Revisa el horario del menú.");
+      }
+    }
     ventana.location.replace(url);
     setAbiertoEnWhatsApp(true);
   };
@@ -351,13 +383,19 @@ function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, cat
         <CarritoPedido
           carrito={carrito}
           menuData={menuData}
-          setMostrarCarrito={setMostrarCarrito}
+          setMostrarCarrito={(visible) => {
+            if (!visible) ventanaPendiente.current?.close();
+            setMostrarCarrito(visible);
+          }}
           quitarDelCarrito={quitarDelCarrito}
           editarPan={editarPan}
           nombreCliente={nombreCliente}
           setNombreCliente={setNombreCliente}
           tipoEntrega={tipoEntrega}
           setTipoEntrega={setTipoEntrega}
+          domicilioDisponible={domicilioDisponible}
+          avisoDomicilio={avisoDomicilio}
+          verificandoPedido={verificandoPedido}
           direccion={direccion}
           setDireccion={setDireccion}
           metodoPago={metodoPago}
@@ -369,8 +407,8 @@ function MenuClientes({ vistaDesayunosLocal, turnoMenu, reloj, cambiarTurno, cat
           totalProductos={totalProductos}
           costoEnvioReal={costoEnvioReal}
           totalPagar={totalPagar}
-          estaAbierto={estaAbierto}
-          razonCierre={vistaDesayunosLocal ? "Vista previa · No envía pedidos" : razonCierre}
+          estaAbierto={estaAbierto && !domicilioBloqueado}
+          razonCierre={vistaDesayunosLocal ? "Vista previa · No envía pedidos" : domicilioBloqueado ? "Elige otra forma de entrega" : razonCierre}
           abiertoEnWhatsApp={abiertoEnWhatsApp}
           finalizarCarrito={finalizarCarrito}
           enviarAWhatsApp={enviarAWhatsApp}

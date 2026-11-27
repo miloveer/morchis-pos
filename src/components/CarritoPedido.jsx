@@ -13,6 +13,9 @@ export default function CarritoPedido({
   setNombreCliente,
   tipoEntrega,
   setTipoEntrega,
+  domicilioDisponible,
+  avisoDomicilio,
+  verificandoPedido,
   direccion,
   setDireccion,
   metodoPago,
@@ -227,14 +230,16 @@ export default function CarritoPedido({
                     En Mesa
                   </button>
                   <button
-                    type="button" aria-pressed={tipoEntrega === "domicilio"} onClick={() => setTipoEntrega("domicilio")}
-                    className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all ${tipoEntrega === "domicilio" ? "morchis-elegido" : "bg-gray-50 border-gray-200 text-gray-600"}`}
+                    type="button" aria-pressed={tipoEntrega === "domicilio"} disabled={!domicilioDisponible}
+                    aria-describedby={!domicilioDisponible ? "aviso-domicilio" : undefined} onClick={() => setTipoEntrega("domicilio")}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-all disabled:opacity-50 ${tipoEntrega === "domicilio" ? "morchis-elegido" : "bg-gray-50 border-gray-200 text-gray-600"}`}
                   >
                     Domicilio
                   </button>
                 </div>
               </div>
-              {tipoEntrega === "domicilio" && (
+              {!domicilioDisponible && <p id="aviso-domicilio" role="status" className="mt-2 text-sm text-gray-600">{avisoDomicilio}</p>}
+              {tipoEntrega === "domicilio" && domicilioDisponible && (
                 <div className="animate-fade-in mt-4">
                   <label htmlFor="pedido-direccion" className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-2 block">
                     Dirección completa *
@@ -314,10 +319,10 @@ export default function CarritoPedido({
             </div>
             {estaAbierto ? (
               <button
-                onClick={enviarAWhatsApp}
+                onClick={enviarAWhatsApp} disabled={verificandoPedido} aria-busy={verificandoPedido}
                 className="w-full morchis-accion p-4 rounded-xl font-bold text-lg transition-all flex justify-center items-center gap-2"
               >
-                {abiertoEnWhatsApp ? "Volver a abrir WhatsApp" : "Abrir pedido en WhatsApp"}
+                {verificandoPedido ? "Verificando domicilio…" : abiertoEnWhatsApp ? "Volver a abrir WhatsApp" : "Abrir pedido en WhatsApp"}
               </button>
             ) : (
               <button
