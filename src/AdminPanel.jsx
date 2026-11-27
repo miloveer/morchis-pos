@@ -1,197 +1,102 @@
 import { useState } from "react";
-import { doc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, runTransaction, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
+import PreciosMenuPanel from "./components/admin/PreciosMenuPanel";
 import CatalogosPanel from "./components/admin/CatalogosPanel";
+import DisponibilidadMenu from "./components/admin/DisponibilidadMenu";
+import { idOpcion } from "./config/disponibilidadMenu";
+import "./styles/menu-operacion.css";
 
-export default function AdminPanel({ menuData, catalogos, cerrarAdmin }) {
-  const [actualizandoImagenes, setActualizandoImagenes] = useState(false);
+const secciones = [["disponibilidad", "Disponibilidad"], ["precios", "Precios"], ["sabores", "Sabores"], ["imagenes", "Imágenes"]];
 
-  const actualizarRutasWebp = async () => {
-    const cambios = menuData
-      .filter((item) => typeof item.imagen === "string")
-      .map((item) => ({
-        id: item.id,
-        imagen: item.imagen.trim().replace(/\.png$/i, ".webp"),
-        rutaActual: item.imagen,
-      }))
-      .filter((item) => item.imagen !== item.rutaActual);
+function PreciosBase({ menuData }) {
+  const [mensaje, setMensaje] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
-    if (cambios.length === 0) {
-      alert("No hay rutas PNG ni espacios sobrantes por corregir.");
-      return;
+  async function guardar(e, producto, grupo, item, campo) {
+    e.preventDefault();
+    const texto = new FormData(e.currentTarget).get("precio");
+    if (guardando || texto === "" || !Number.isFinite(Number(texto)) || Number(texto) < 0) return;
+    setGuardando(true);
+    setMensaje("");
+    try {
+      const ref = doc(db, "menu", producto.id);
+      await runTransaction(db, async (tx) => {
+        const datos = (await tx.get(ref)).data();
+        if (!datos?.[grupo]?.some((opcion) => idOpcion(opcion) === idOpcion(item))) throw new Error("La opción ya no existe.");
+        tx.update(ref, { [grupo]: datos[grupo].map((opcion) =>
+          idOpcion(opcion) === idOpcion(item) ? { ...opcion, [campo]: Number(texto) } : opcion) });
+      });
+      setMensaje(`Precio de ${item.nombre} guardado.`);
+    } catch {
+      setMensaje("No se pudo guardar el precio.");
+    } finally {
+      setGuardando(false);
     }
+  }
 
-    const confirmar = window.confirm(
-      `Se actualizarán ${cambios.length} rutas de imágenes en Firebase.\n\n` +
-        "Confirma que los archivos .webp ya existen en public/img antes de continuar.\n\n" +
-        cambios.map((item) => `${item.rutaActual.trim()} → ${item.imagen}`).join("\n"),
-    );
-    if (!confirmar) return;
+  return <details className="adm-panel adm-producto">
+    <summary>Precios registrados directamente en el menú</summary>
+    <div className="op-pila adm-producto-detalle">
+      {mensaje && <p role="status" className="op-suave">{mensaje}</p>}
+      {menuData.map((p) => <details className="adm-producto" key={p.id}>
+        <summary>{p.nombre}</summary>
+        <div className="adm-producto-detalle">
+        {[["variantes", "precioBase"], ["extras", "precio"]].map(([grupo, campo]) =>
+          (grupo === "variantes" && (p.id === "sincronizadas" || p.id.startsWith("cafe_")) ? [] : p[grupo] ?? []).map((opcion) =>
+            <form className="adm-precio" key={`${grupo}:${idOpcion(opcion)}`} onSubmit={(e) => guardar(e, p, grupo, opcion, campo)}>
+              <label className="op-campo">{opcion.nombre}
+                <input key={opcion[campo]} name="precio" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={opcion[campo] ?? ""} required />
+              </label><button type="submit" className="op-boton" disabled={guardando}>Guardar</button>
+            </form>))}
+        </div>
+      </details>)}
+    </div>
+  </details>;
+}
 
-    setActualizandoImagenes(true);
+export default function AdminPanel({ menuData, catalogos }) {
+  const [seccion, setSeccion] = useState("disponibilidad");
+  const [actualizando, setActualizando] = useState(false);
+  const [mensajeFotos, setMensajeFotos] = useState("");
+
+  async function actualizarRutasWebp() {
+    const cambios = menuData.flatMap((item) => {
+      if (typeof item.imagen !== "string") return [];
+      const imagen = item.imagen.trim().replace(/\.png$/i, ".webp");
+      return imagen === item.imagen ? [] : [{ id: item.id, imagen }];
+    });
+    if (!cambios.length) { setMensajeFotos("Las rutas ya están actualizadas."); return; }
+    if (!window.confirm(`Se actualizarán ${cambios.length} rutas. Verifica que existan las imágenes WebP antes de continuar.`)) return;
+    setActualizando(true);
+    setMensajeFotos("");
     try {
       const batch = writeBatch(db);
-      cambios.forEach((item) => {
-        batch.update(doc(db, "menu", item.id), { imagen: item.imagen });
-      });
+      for (const { id, imagen } of cambios) batch.update(doc(db, "menu", id), { imagen });
       await batch.commit();
-      alert(`Listo: se actualizaron ${cambios.length} imágenes de una sola vez.`);
-    } catch (error) {
-      alert(`No se pudieron actualizar las rutas: ${error.message}`);
+      setMensajeFotos(`${cambios.length} rutas actualizadas.`);
+    } catch {
+      setMensajeFotos("No se pudieron actualizar las rutas.");
     } finally {
-      setActualizandoImagenes(false);
+      setActualizando(false);
     }
-  };
+  }
 
-  const toggleEstado = async (categoriaId, campo, valorActual) => {
-    try {
-      await updateDoc(doc(db, "menu", categoriaId), { [campo]: !valorActual });
-    } catch (error) {
-      alert("Error: " + error.message);
-    }
-  };
-
-  const actualizarSubItem = async (categoriaId, arrayNombre, itemId, subCampo, nuevoValor) => {
-    const categoria = menuData.find(m => m.id === categoriaId);
-    const nuevoArray = categoria[arrayNombre].map(item => 
-      (item.id === itemId || item.nombre === itemId) ? { ...item, [subCampo]: nuevoValor } : item
-    );
-    try {
-      await updateDoc(doc(db, "menu", categoriaId), { [arrayNombre]: nuevoArray });
-    } catch (error) {
-      alert("Error: " + error.message);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-4 pb-12 font-sans">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-        <div>
-          <h1 className="text-xl font-black text-gray-900 tracking-tight">Consola Morchis</h1>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Gestión de Precios e Inventario</p>
-        </div>
-        <button onClick={cerrarAdmin} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md hover:bg-gray-800 transition-all">
-          Salir
-        </button>
-      </header>
-
-      <CatalogosPanel catalogos={catalogos} />
-
-      <section className="mb-6 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="font-black text-gray-950">Imágenes del menú</h2>
-        <p className="mt-1 text-xs text-gray-500">
-          Actualiza en bloque las rutas de Firebase: elimina espacios al final y cambia .png por .webp.
-        </p>
-        <button
-          onClick={actualizarRutasWebp}
-          disabled={actualizandoImagenes}
-          className="mt-3 rounded-xl bg-orange-600 px-4 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
-        >
-          {actualizandoImagenes ? "ACTUALIZANDO…" : "ACTUALIZAR TODAS LAS RUTAS WEBP"}
-        </button>
-      </section>
-
-      <div className="space-y-6">
-        {menuData.map(item => (
-          <div key={item.id} className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* CABECERA DE CATEGORÍA */}
-            <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{item.icono}</span>
-                <h2 className="font-black text-gray-900 uppercase text-sm tracking-tighter">{item.nombre}</h2>
-              </div>
-              <button 
-                onClick={() => toggleEstado(item.id, 'agotado', item.agotado)}
-                className={`px-3 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all ${item.agotado ? 'bg-red-500 text-white shadow-red-200 shadow-lg' : 'bg-green-500 text-white shadow-green-200 shadow-lg'}`}
-              >
-                {item.agotado ? 'Categoría Agotada' : 'Categoría Activa'}
-              </button>
-            </div>
-
-            <div className="p-4 space-y-6">
-              {/* VARIANTES Y PRECIOS */}
-              {item.variantes && (
-                <section>
-                  <p className="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">Variantes y Precios</p>
-                  <div className="space-y-2">
-                    {item.variantes.map(v => (
-                      <div key={v.id} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-100 shadow-xs">
-                        <button 
-                          // FIX: Aquí está el !v.agotada
-                          onClick={() => actualizarSubItem(item.id, 'variantes', v.id, 'agotada', !v.agotada)}
-                          className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs ${v.agotada ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
-                        >
-                          {v.agotada ? '✕' : '✓'}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-bold truncate ${v.agotada ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{v.nombre}</p>
-                        </div>
-                        <div className="flex items-center bg-gray-100 rounded-lg px-2">
-                          <span className="text-xs font-bold text-gray-500">$</span>
-                          <input 
-                            type="number"
-                            defaultValue={v.precioBase}
-                            onBlur={(e) => actualizarSubItem(item.id, 'variantes', v.id, 'precioBase', Number(e.target.value))}
-                            className="w-14 p-1.5 bg-transparent text-xs font-black text-gray-900 outline-none text-right"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* TIPOS DE CARNE */}
-              {item.opcionProteina && (
-                <section>
-                  <p className="text-[10px] font-black text-orange-400 uppercase mb-3 tracking-widest">Tipos de Carne</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {item.opcionProteina.map(prot => (
-                      <div key={prot.nombre} className="flex items-center gap-2 bg-orange-50/30 p-2 rounded-xl border border-orange-100">
-                        <button 
-                          // FIX: Aquí está el !prot.agotada
-                          onClick={() => actualizarSubItem(item.id, 'opcionProteina', prot.nombre, 'agotada', !prot.agotada)}
-                          className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] ${prot.agotada ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}
-                        >
-                          {prot.agotada ? '✕' : '✓'}
-                        </button>
-                        <p className={`flex-1 text-[11px] font-bold ${prot.agotada ? 'text-gray-400 line-through' : 'text-orange-900'}`}>{prot.nombre}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* EXTRAS */}
-              {item.extras && (
-                <section>
-                  <p className="text-[10px] font-black text-blue-400 uppercase mb-3 tracking-widest">Extras</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {item.extras.map(e => (
-                      <div key={e.id} className="flex items-center gap-2 bg-blue-50/30 p-2 rounded-xl border border-blue-100">
-                        <button 
-                          // FIX: Aquí está el !e.agotada
-                          onClick={() => actualizarSubItem(item.id, 'extras', e.id, 'agotada', !e.agotada)}
-                          className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-[10px] ${e.agotada ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}
-                        >
-                          {e.agotada ? '✕' : '✓'}
-                        </button>
-                        <p className={`flex-1 text-[11px] font-bold ${e.agotada ? 'text-gray-400 line-through' : 'text-blue-900'}`}>{e.nombre}</p>
-                        <input 
-                          type="number"
-                          defaultValue={e.precio}
-                          onBlur={(eVal) => actualizarSubItem(item.id, 'extras', e.id, 'precio', Number(eVal.target.value))}
-                          className="w-12 bg-white border border-blue-100 p-1 rounded text-[11px] font-black text-blue-900 text-center"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+  return <div className="adm-menu">
+    <nav aria-label="Secciones del menú" className="adm-nav">
+      {secciones.map(([id, nombre]) => <button key={id} className="op-boton" type="button"
+        aria-pressed={seccion === id} onClick={() => setSeccion(id)}>{nombre}</button>)}
+    </nav>
+    <div className="op-pila adm-contenido">
+      <h2 className="adm-titulo">Menú</h2>
+      {seccion === "disponibilidad" && <DisponibilidadMenu menuData={menuData} />}
+      {seccion === "precios" && (menuData ? <><PreciosMenuPanel menuData={menuData} /><PreciosBase menuData={menuData} /></> : <p role="status">Cargando menú…</p>)}
+      {seccion === "sabores" && <CatalogosPanel catalogos={catalogos} />}
+      {seccion === "imagenes" && <section className="adm-panel op-pila"><h3>Imágenes del menú</h3>
+        <p className="op-suave">Elimina espacios al final de las rutas y cambia la extensión PNG por WebP.</p>
+        <button className="op-boton op-principal op-ajuste" disabled={actualizando || !menuData} onClick={actualizarRutasWebp}>Actualizar rutas WebP</button>
+        {mensajeFotos && <p role="status">{mensajeFotos}</p>}
+      </section>}
     </div>
-  );
+  </div>;
 }
