@@ -50,3 +50,13 @@ Entra como socio a **Costeo y recetario → Resumen → Cargar respaldo JSON**, 
 En **Costeo → Insumos** puedes publicar las fichas de existencias, juntas o por separado. Se envían nombre, proveedor, presentación y cantidades; el precio queda en Costeo. Al publicar no se sobreescriben fichas existentes con el mismo ID. Si un insumo ya lo registró el equipo, puedes crear su costo con **Asignar costo a un insumo del inventario**. Evita crear dos fichas para el mismo insumo. Si cambias el nombre, proveedor o presentación de uno que ya estaba vinculado, alinea esos datos en ambas secciones para recuperar la estimación.
 
 El estimado suma los faltantes no marcados como comprados que tienen precio vinculado. La lista compartida por WhatsApp incluye cantidades y proveedores.
+
+## Checklist de compras por tienda
+
+En **Operación → Inventario y compras** abre el checklist. Los faltantes aparecen con la cantidad sugerida; puedes cambiarla y guardar. Con **Existencias** puedes agregar un insumo aunque tenga stock suficiente. Guarda **0** o pulsa **Quitar de la lista** para excluirlo. Marcar como comprado lo tacha y lo descuenta del monto pendiente; el stock se actualiza por separado.
+
+Los socios ven el subtotal del plan por tienda y el total general. Si falta un precio vinculado en Costeo, el total se indica como parcial o sin precios. Compartir por WhatsApp incluye los pendientes y las cantidades, sin precios.
+
+Pulsa **Editar insumo y foto** y elige una foto; luego guarda. Se comparte una foto por insumo con el equipo. Toca la miniatura para ampliarla. No necesitas activar Firebase Storage.
+
+Para que se puedan guardar la cantidad y la foto, actualiza el bloque de inventario de Firestore con `docs/inventario-firestore.rules.txt` como se explica en el paso 2. Los registros anteriores son compatibles; sus faltantes aparecen automáticamente.

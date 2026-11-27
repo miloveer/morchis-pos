@@ -2,13 +2,17 @@
       function fichaValida(i) {
         let campos = ['nombre', 'tienda', 'presentacion', 'stock', 'minimo', 'comprado',
           'registradoPor', 'registradoNombre', 'registradoColor', 'registradoEn'];
-        return i.keys().hasOnly(campos) && i.keys().hasAll(campos)
+        return i.keys().hasOnly(campos.concat(['cantidadCompra', 'foto'])) && i.keys().hasAll(campos)
           && i.nombre is string && i.nombre.size() > 0 && i.nombre.size() <= 120
           && i.tienda is string && i.tienda.size() > 0 && i.tienda.size() <= 120
           && i.presentacion is string && i.presentacion.size() > 0 && i.presentacion.size() <= 80
           && i.stock is number && i.stock >= 0 && i.stock <= 1000000
           && i.minimo is number && i.minimo >= 0 && i.minimo <= 1000000
-          && i.comprado is bool;
+          && i.comprado is bool
+          && (!('cantidadCompra' in i) || (i.cantidadCompra is number
+            && i.cantidadCompra >= 0 && i.cantidadCompra <= 1000000))
+          && (!('foto' in i) || (i.foto is string && i.foto.size() > 23
+            && i.foto.size() <= 98304 && i.foto.matches('data:image/jpeg;base64,.*')));
       }
       function firmaActual(i) {
         let datos = profile();
@@ -23,8 +27,11 @@
       allow create: if staff() && fichaValida(request.resource.data)
         && request.resource.data.comprado == false && firmaActual(request.resource.data);
       allow update: if staff() && fichaValida(request.resource.data) && (
-        (request.resource.data.comprado == false && firmaActual(request.resource.data))
-        || (resource.data.minimo > resource.data.stock
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comprado']))
+        (firmaActual(request.resource.data)
+          && (!request.resource.data.comprado || resource.data.comprado == true))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comprado'])
+          && (resource.data.get('cantidadCompra', resource.data.minimo - resource.data.stock) > 0))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cantidadCompra', 'comprado'])
+          && 'cantidadCompra' in request.resource.data && request.resource.data.comprado == false)
       );
     }

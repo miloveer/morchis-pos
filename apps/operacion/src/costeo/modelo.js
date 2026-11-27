@@ -8,14 +8,14 @@ export const moneda = (valor) => new Intl.NumberFormat("es-MX", {
 
 export const pendiente = (item) => Math.max(0, item.minimo - item.stock);
 
-export function estimadoCompras(faltantes, insumos) {
+export function estimadoCompras(faltantes, insumos, obtenerCantidad = pendiente) {
   const porId = new Map(insumos.map((i) => [i.id, i]));
   const coincide = (a, b) => a.trim().toLocaleLowerCase("es-MX") === b.trim().toLocaleLowerCase("es-MX");
   return new Map(faltantes.map((item) => {
     const insumo = porId.get(item.id);
     const precio = insumo && coincide(insumo.u, item.presentacion)
       && coincide(insumo.n, item.nombre) && coincide(insumo.c, item.tienda) ? insumo.p : null;
-    return [item.id, precio == null ? null : pendiente(item) * precio];
+    return [item.id, precio == null ? null : obtenerCantidad(item) * precio];
   }));
 }
 
