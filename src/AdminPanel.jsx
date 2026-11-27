@@ -3,6 +3,7 @@ import { doc, runTransaction, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import PreciosMenuPanel from "./components/admin/PreciosMenuPanel";
 import CatalogosPanel from "./components/admin/CatalogosPanel";
+import ServicioDomicilio from "./components/admin/ServicioDomicilio";
 import DisponibilidadMenu from "./components/admin/DisponibilidadMenu";
 import { idOpcion } from "./config/disponibilidadMenu";
 import "./styles/menu-operacion.css";
@@ -89,6 +90,7 @@ export default function AdminPanel({ menuData, catalogos }) {
     </nav>
     <div className="op-pila adm-contenido">
       <h2 className="adm-titulo">Menú</h2>
+      <ServicioDomicilio />
       {seccion === "disponibilidad" && <DisponibilidadMenu menuData={menuData} />}
       {seccion === "precios" && (menuData ? <><PreciosMenuPanel menuData={menuData} /><PreciosBase menuData={menuData} /></> : <p role="status">Cargando menú…</p>)}
       {seccion === "sabores" && <CatalogosPanel catalogos={catalogos} />}
